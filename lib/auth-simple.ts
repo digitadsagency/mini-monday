@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken'
 import { NextRequest } from 'next/server'
-import { findUserByEmail, verifyPassword, User } from './users'
+import { findUserByEmail, verifyPassword } from './users'
 import { UsersService } from './services/users'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'mini-monday-secret-key-2024'
@@ -13,7 +13,7 @@ export interface AuthUser {
   avatar?: string
 }
 
-export const createToken = (user: User): string => {
+export const createToken = (user: AuthUser): string => {
   return jwt.sign(
     { 
       id: user.id, 
