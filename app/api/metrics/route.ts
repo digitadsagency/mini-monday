@@ -132,7 +132,7 @@ export async function GET(request: NextRequest) {
     // Sumar horas de worklogs del mes (para compatibilidad)
     for (const w of monthWorklogs) {
       const uid = w.user_id
-      const pid = w.project_id || w.projectId || 'none'
+      const pid = w.project_id || 'none'
       const h = Number(w.hours || 0)
       horasByEmp.set(uid, (horasByEmp.get(uid) || 0) + h)
       const key = pid + '|' + uid
