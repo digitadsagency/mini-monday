@@ -110,7 +110,7 @@ export async function GET(request: NextRequest) {
       groupedSal.set(uid, arr)
     }
     const latestSal = new Map<string, number>()
-    for (const [uid, arr] of groupedSal) {
+    for (const [uid, arr] of Array.from(groupedSal.entries())) {
       const elig = arr.filter((x:any)=> ((x.effective_month||x.effectiveMonth)||'').slice(0,7) <= m)
       elig.sort((a:any,b:any)=> ((a.effective_month||a.effectiveMonth) > (b.effective_month||b.effectiveMonth) ? -1 : 1))
       const chosen = elig[0]
@@ -131,7 +131,7 @@ export async function GET(request: NextRequest) {
     
     // Sumar horas de worklogs del mes (para compatibilidad)
     for (const w of monthWorklogs) {
-      const uid = w.user_id || w.employee_id || w.employeeId
+      const uid = w.user_id
       const pid = w.project_id || w.projectId || 'none'
       const h = Number(w.hours || 0)
       horasByEmp.set(uid, (horasByEmp.get(uid) || 0) + h)
@@ -517,7 +517,7 @@ export async function GET(request: NextRequest) {
     // Costo por tipo específico y empleado (usar tipos específicos en lugar de generales)
     const stageEmpAgg = new Map<string, { hours: number, cost: number }>() // key: specificType|employeeId
     for (const w of monthWorklogs) {
-      const uid = w.user_id || w.employee_id || w.employeeId
+      const uid = w.user_id
       const stage = w._typeSpecific || w._typeNorm // Usar tipo específico primero
       const h = Number(w.hours || 0)
       const ch = costHourByEmp.get(uid) || 0
@@ -615,7 +615,7 @@ export async function GET(request: NextRequest) {
       const typeAggClient = new Map<string, { horas: number, cost: number }>()
       for (const w of projLogs) {
         const h = Number(w.hours||0)
-        const uid = w.user_id || w.employee_id || w.employeeId
+        const uid = w.user_id
         const ch = costHourByEmp.get(uid) || 0
         const t = w._typeSpecific || w._typeNorm // Usar tipo específico primero
         const a = typeAggClient.get(t) || { horas: 0, cost: 0 }
