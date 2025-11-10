@@ -534,8 +534,8 @@ export default function ClickUpListView({ params }: { params: { id: string; proj
                           <div className="flex-1 min-w-0 flex items-center space-x-3">
                             <div className="flex-1 min-w-0">
                               <h4 className="text-sm font-medium text-gray-900">{task.title}</h4>
-                              {task.description && (
-                                <p className="text-xs text-gray-500 mt-1 line-clamp-2">{task.description}</p>
+                              {task.description_md && (
+                                <p className="text-xs text-gray-500 mt-1 line-clamp-2">{task.description_md}</p>
                               )}
                             </div>
                             {getPriorityIcon(task.priority)}
@@ -589,8 +589,8 @@ export default function ClickUpListView({ params }: { params: { id: string; proj
                           <div className="flex-1 min-w-0 flex items-center space-x-3">
                             <div className="flex-1 min-w-0">
                               <h4 className="text-sm font-medium text-gray-900">{task.title}</h4>
-                              {task.description && (
-                                <p className="text-xs text-gray-500 mt-1 line-clamp-2">{task.description}</p>
+                              {task.description_md && (
+                                <p className="text-xs text-gray-500 mt-1 line-clamp-2">{task.description_md}</p>
                               )}
                             </div>
                             {getPriorityIcon(task.priority)}
@@ -645,8 +645,8 @@ export default function ClickUpListView({ params }: { params: { id: string; proj
                           <div className="flex-1 min-w-0 flex items-center space-x-3">
                             <div className="flex-1 min-w-0">
                               <h4 className="text-sm font-medium text-gray-900">{task.title}</h4>
-                              {task.description && (
-                                <p className="text-xs text-gray-500 mt-1 line-clamp-2">{task.description}</p>
+                              {task.description_md && (
+                                <p className="text-xs text-gray-500 mt-1 line-clamp-2">{task.description_md}</p>
                               )}
                             </div>
                             {getPriorityIcon(task.priority)}
@@ -701,8 +701,8 @@ export default function ClickUpListView({ params }: { params: { id: string; proj
                           <div className="flex-1 min-w-0 flex items-center space-x-3">
                             <div className="flex-1 min-w-0">
                               <h4 className="text-sm font-medium text-gray-500 line-through">{task.title}</h4>
-                              {task.description && (
-                                <p className="text-xs text-gray-400 mt-1 line-clamp-2 line-through">{task.description}</p>
+                              {task.description_md && (
+                                <p className="text-xs text-gray-400 mt-1 line-clamp-2 line-through">{task.description_md}</p>
                               )}
                             </div>
                             {getPriorityIcon(task.priority)}
