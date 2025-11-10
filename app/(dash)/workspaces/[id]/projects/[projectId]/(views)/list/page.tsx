@@ -270,7 +270,7 @@ export default function ProjectListPage({
                           <div className="ml-3">
                             <div className="text-sm font-medium text-gray-900">{task.title}</div>
                             <div className="text-sm text-gray-500">
-                              {task.description || 'Sin descripción'}
+                              {task.description_md || 'Sin descripción'}
                             </div>
                           </div>
                         </div>
