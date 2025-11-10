@@ -124,7 +124,7 @@ export default function ProjectListPage({
     switch (priority) {
       case 'urgent': return 'bg-red-100 text-red-800 border-red-200'
       case 'high': return 'bg-orange-100 text-orange-800 border-orange-200'
-      case 'medium': return 'bg-yellow-100 text-yellow-800 border-yellow-200'
+      case 'med': return 'bg-yellow-100 text-yellow-800 border-yellow-200'
       case 'low': return 'bg-blue-100 text-blue-800 border-blue-200'
       default: return 'bg-gray-100 text-gray-800 border-gray-200'
     }
@@ -134,7 +134,7 @@ export default function ProjectListPage({
     switch (priority) {
       case 'urgent': return <AlertTriangle className="h-4 w-4 text-red-600" />
       case 'high': return <AlertTriangle className="h-4 w-4 text-orange-600" />
-      case 'medium': return <Clock className="h-4 w-4 text-yellow-600" />
+      case 'med': return <Clock className="h-4 w-4 text-yellow-600" />
       case 'low': return <Clock className="h-4 w-4 text-blue-600" />
       default: return <Clock className="h-4 w-4 text-gray-600" />
     }
