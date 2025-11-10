@@ -64,8 +64,8 @@ export default function PerformanceDashboard({ params }: { params: { id: string 
   // Use optimized hooks with caching (data puede ser null inicialmente)
   const { data: usersData, loading: usersLoading } = useUsers()
   const { data: tasksData, loading: tasksLoading } = useTasks(params.id)
-  const users = usersData ?? []
-  const tasks = tasksData ?? []
+  const users = useMemo(() => usersData ?? [], [usersData])
+  const tasks = useMemo(() => tasksData ?? [], [tasksData])
   
   const loading = usersLoading || tasksLoading
 
@@ -76,7 +76,7 @@ export default function PerformanceDashboard({ params }: { params: { id: string 
   }, [user, authLoading, router])
 
   // Filter tasks by time period
-  const filterTasksByTime = (tasks: any[], filter: 'all' | 'day' | 'week' | 'month' | 'custom') => {
+  const filterTasksByTime = useCallback((tasks: any[], filter: 'all' | 'day' | 'week' | 'month' | 'custom') => {
     if (filter === 'all') return tasks
     
     if (filter === 'custom') {
@@ -202,7 +202,7 @@ export default function PerformanceDashboard({ params }: { params: { id: string 
   // Filter tasks based on time filter
   const filteredTasks = useMemo(() => {
     return filterTasksByTime(tasks, timeFilter)
-  }, [tasks, timeFilter, customDateStart, customDateEnd])
+  }, [tasks, timeFilter, filterTasksByTime])
 
   // Después: usar esos callbacks dentro de useMemo
   const userStats = useMemo(() => {

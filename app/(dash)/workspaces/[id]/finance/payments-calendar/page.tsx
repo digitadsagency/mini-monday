@@ -40,7 +40,7 @@ export default function PaymentsCalendarPage({ params }: { params: { id: string 
     if (!authLoading && user && !isAdmin) {
       router.push(`/workspaces/${params.id}/dashboard`)
     }
-  }, [loading, user, isAdmin, params.id, router])
+  }, [authLoading, user, isAdmin, params.id, router])
 
   useEffect(() => {
     const loadData = async () => {

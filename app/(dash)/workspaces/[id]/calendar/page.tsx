@@ -13,7 +13,7 @@ import { toLocalYMD } from '@/lib/time'
 import { getTeamMemberName, getTeamMemberInitials } from '@/lib/team-members'
 
 // Helper function to get user info from Google Sheets data
-const getUserInfo = (assigneeId: string, users: any[] = []) => {
+const getUserInfo = (assigneeId: string | undefined, users: any[] = []) => {
   const user = users.find(u => u.id === assigneeId)
   if (!user) return { name: 'Sin asignar', initials: '?' }
   
@@ -214,7 +214,7 @@ export default function WorkspaceCalendarPage({ params }: { params: { id: string
               </div>
             </div>
             <div className="flex items-center space-x-4">
-              <TaskFormDialog projectId="general" onTaskCreate={handleTaskCreate} />
+              <TaskFormDialog projectId={undefined} workspaceId={params.id} onTaskCreated={handleTaskCreate} />
             </div>
           </div>
         </div>
@@ -387,7 +387,7 @@ export default function WorkspaceCalendarPage({ params }: { params: { id: string
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Asignaciones</h3>
             <div className="space-y-2">
               {tasks.filter(task => task.assignee_id).map((task) => {
-                const assigneeInfo = getUserInfo(task.assignee_id, users)
+                const assigneeInfo = getUserInfo(task.assignee_id || undefined, users)
                 return (
                   <div key={task.id} className="flex items-center justify-between">
                     <span className="text-sm text-gray-600">{assigneeInfo.name}</span>

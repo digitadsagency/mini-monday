@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
 import { useAuth } from '@/lib/useAuth'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
@@ -34,7 +34,7 @@ export default function FinanceMetricsPage({ params }: { params: { id: string } 
     if (!loading && user && !isAdmin) router.push(`/workspaces/${params.id}/dashboard`)
   }, [loading, user, isAdmin, params.id, router])
 
-  const fetchMetrics = async (m: string) => {
+  const fetchMetrics = useCallback(async (m: string) => {
     setLoadingMetrics(true)
     try {
       const res = await fetch(`/api/metrics?month=${m}&workspaceId=${params.id}`, { cache: 'no-store' })
@@ -48,9 +48,9 @@ export default function FinanceMetricsPage({ params }: { params: { id: string } 
     } finally {
       setLoadingMetrics(false)
     }
-  }
+  }, [params.id])
 
-  useEffect(() => { if (isAdmin) fetchMetrics(month) }, [isAdmin, month])
+  useEffect(() => { if (isAdmin) fetchMetrics(month) }, [isAdmin, month, fetchMetrics])
 
   if (!user || !isAdmin) return null
 
