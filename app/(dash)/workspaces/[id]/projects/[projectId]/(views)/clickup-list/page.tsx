@@ -28,7 +28,8 @@ import { parseLocalDateFromYMD } from '@/lib/time'
 import { TaskFormDialog } from '@/components/TaskFormDialog'
 
 // Helper function to get user info from Google Sheets data
-const getUserInfo = (assigneeId: string, users: any[] = []) => {
+const getUserInfo = (assigneeId: string | undefined, users: any[] = []) => {
+  if (!assigneeId) return { name: 'Sin asignar', initials: '?', avatar: '👤' }
   const user = users.find(u => u.id === assigneeId)
   if (!user) return { name: 'Sin asignar', initials: '?', avatar: '👤' }
   
