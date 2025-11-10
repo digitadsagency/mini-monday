@@ -152,7 +152,7 @@ export async function GET(request: NextRequest) {
       if (status === 'done' || status === 'inprogress' || status === 'review') {
         horasByEmp.set(uid, (horasByEmp.get(uid) || 0) + estimateHours)
         
-        const pid = task.project_id || task.projectId || 'none'
+        const pid = task.project_id || 'none'
         const key = pid + '|' + uid
         horasByProjEmp.set(key, (horasByProjEmp.get(key) || 0) + estimateHours)
       }
@@ -182,8 +182,8 @@ export async function GET(request: NextRequest) {
     const costHourByEmp = new Map(employees.map(e => [e.employeeId, e.costoHoraReal]))
     const revenueProject = new Map<string, number>()
     for (const b of billings) {
-      if (b.project_id || b.projectId) {
-        const pid = b.project_id || b.projectId
+      if (b.project_id) {
+        const pid = b.project_id
         revenueProject.set(pid, (revenueProject.get(pid) || 0) + Number(b.monthly_amount || b.monthlyAmountMXN || 0))
       }
     }
@@ -611,7 +611,7 @@ export async function GET(request: NextRequest) {
 
       // Costo por tipo específico dentro del cliente: prorratear horas/costo por tipo con worklogs del proyecto
       const pid = c.clientId
-      const projLogs = monthWorklogs.filter((w:any)=> (w.project_id||w.projectId) === pid)
+      const projLogs = monthWorklogs.filter((w:any)=> w.project_id === pid)
       const typeAggClient = new Map<string, { horas: number, cost: number }>()
       for (const w of projLogs) {
         const h = Number(w.hours||0)
