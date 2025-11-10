@@ -211,7 +211,7 @@ export class FinanceService {
     return records
   }
 
-  static async createPaymentRecord(data: Omit<PaymentRecord, 'id' | 'created_at' | 'updated_at'>): Promise<PaymentRecord> {
+  static async createPaymentRecord(data: Omit<PaymentRecord, 'id' | 'created_at' | 'updated_at' | 'is_on_time' | 'days_delay'>): Promise<PaymentRecord> {
     await this.ensureSheetExists('payment_records', ['id','workspace_id','project_id','billing_id','expected_amount','paid_amount','expected_date','paid_date','is_on_time','days_delay','notes','created_at','updated_at'])
     
     // Calculate is_on_time and days_delay
