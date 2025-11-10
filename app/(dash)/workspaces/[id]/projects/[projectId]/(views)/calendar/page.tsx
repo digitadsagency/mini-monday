@@ -241,7 +241,7 @@ export default function ProjectCalendarPage({
                             <span className={`px-2 py-1 text-xs rounded-full ${getPriorityColor(task.priority)}`}>
                               {task.priority === 'urgent' ? 'Urgente' :
                                task.priority === 'high' ? 'Alta' :
-                               task.priority === 'medium' ? 'Media' : 'Baja'}
+                                task.priority === 'med' ? 'Media' : 'Baja'}
                             </span>
                           </div>
                         </div>
