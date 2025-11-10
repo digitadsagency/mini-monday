@@ -229,7 +229,7 @@ export default function ProjectCalendarPage({
                         >
                           <div className="flex-1">
                             <h4 className="font-medium text-gray-900">{task.title}</h4>
-                            <p className="text-sm text-gray-600">{task.description || 'Sin descripción'}</p>
+                            <p className="text-sm text-gray-600">{task.description_md || 'Sin descripción'}</p>
                           </div>
                           <div className="flex items-center space-x-2">
                             <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(task.status)}`}>
