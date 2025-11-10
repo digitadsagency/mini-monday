@@ -110,7 +110,7 @@ export default function PerformanceDashboard({ params }: { params: { id: string 
       const taskDate = new Date(task.created_at)
       return taskDate >= filterDate
     })
-  }
+  }, [customDateStart, customDateEnd])
 
   // Primero: definir los cálculos memoizados como callbacks
   const calculateUserStats = useCallback((users: any[], tasks: any[]): UserStats[] => {
