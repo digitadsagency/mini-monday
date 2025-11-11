@@ -219,8 +219,6 @@ export function TaskFormDialog({ projectId, workspaceId, onTaskCreated }: TaskFo
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          {console.log('🔍 TaskFormDialog: Form errors:', errors)}
-          {console.log('🔍 TaskFormDialog: Form state:', { open, loading })}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Título
