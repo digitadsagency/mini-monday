@@ -6,7 +6,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const workspaceId = searchParams.get('workspaceId')
 
-    let projects
+    let projects: any[]
     if (workspaceId) {
       projects = await ProjectsService.getAllProjects(workspaceId)
     } else {
