@@ -92,7 +92,7 @@ export async function getFinanceMetrics(month: string): Promise<FinanceMetrics> 
   }
 
   // Employee KPIs
-  const employeesKPIs = employees.map(e => {
+  const employeesKPIs = employees.map((e: any) => {
     const sueldoMensual = salaryByEmployee.get(e.id)?.amountMonthlyMXN || 0
     const horasMes = horasByEmployee.get(e.id) || 0
     const costoHoraByHours = horasMes > 0 ? (sueldoMensual / horasMes) : (sueldoMensual / HORAS_CAPACIDAD_MES)
@@ -140,7 +140,7 @@ export async function getFinanceMetrics(month: string): Promise<FinanceMetrics> 
   }
 
   // Project metrics and roll up to clients, include "No asignado"
-  const employeeCostHour = new Map<string, number>(employeesKPIs.map(e => [e.employeeId, e.costoHoraReal]))
+  const employeeCostHour = new Map<string, number>(employeesKPIs.map((e: any) => [e.employeeId, e.costoHoraReal]))
 
   type ProjectAgg = { revenue: number; horas: number; costoLabor: number }
   const projectAgg = new Map<string, ProjectAgg>()
