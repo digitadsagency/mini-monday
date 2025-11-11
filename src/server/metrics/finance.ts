@@ -207,7 +207,7 @@ export async function getFinanceMetrics(month: string): Promise<FinanceMetrics> 
     const margenPct = revenue > 0 ? +(margenAbs / revenue).toFixed(2) : null
     const alertas: string[] = []
     if (margenPct !== null && margenPct < 0.40) alertas.push('ALERTA_MARGEN_BAJO')
-    const projectsOut = projs.map(p => {
+    const projectsOut = projs.map((p: any) => {
       const pmargenAbs = p.revenue - p.costoLabor
       const pmargenPct = p.revenue > 0 ? +(pmargenAbs / p.revenue).toFixed(2) : null
       const palertas: string[] = []
