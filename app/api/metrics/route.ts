@@ -111,10 +111,10 @@ export async function GET(request: NextRequest) {
     }
     const latestSal = new Map<string, number>()
     for (const [uid, arr] of Array.from(groupedSal.entries())) {
-      const elig = arr.filter((x:any)=> ((x.effective_month||x.effectiveMonth)||'').slice(0,7) <= m)
-      elig.sort((a:any,b:any)=> ((a.effective_month||a.effectiveMonth) > (b.effective_month||b.effectiveMonth) ? -1 : 1))
+      const elig = arr.filter((x:any)=> ((x.effective_month||'')||'').slice(0,7) <= m)
+      elig.sort((a:any,b:any)=> ((a.effective_month||'') > (b.effective_month||'') ? -1 : 1))
       const chosen = elig[0]
-      latestSal.set(uid, Number(chosen?.monthly_salary || chosen?.amountMonthlyMXN || 0))
+      latestSal.set(uid, Number(chosen?.monthly_salary || 0))
     }
 
     // Calcular horas trabajadas basadas en tareas asignadas y completadas del mes
@@ -166,7 +166,7 @@ export async function GET(request: NextRequest) {
     const SEMANAS_MES = 4
     const HORAS_SEMANA_POR_EMPLEADO = HORAS_DIARIAS * DIAS_SEMANA // 30 horas/semana
     const HORAS_CAPACIDAD_MES = HORAS_SEMANA_POR_EMPLEADO * SEMANAS_MES // 120 horas/mes por empleado
-    const employeesIds = Array.from(new Set([...latestSal.keys(), ...horasByEmp.keys()]))
+    const employeesIds = Array.from(new Set([...Array.from(latestSal.keys()), ...Array.from(horasByEmp.keys())]))
     const employees = employeesIds
       .filter(uid => latestSal.get(uid) || horasByEmp.get(uid))
       .map(uid => {
@@ -184,13 +184,13 @@ export async function GET(request: NextRequest) {
     for (const b of billings) {
       if (b.project_id) {
         const pid = b.project_id
-        revenueProject.set(pid, (revenueProject.get(pid) || 0) + Number(b.monthly_amount || b.monthlyAmountMXN || 0))
+        revenueProject.set(pid, (revenueProject.get(pid) || 0) + Number(b.monthly_amount || 0))
       }
     }
 
     type Agg = { revenue: number; horas: number; costoLabor: number }
     const aggByProject = new Map<string, Agg>()
-    for (const [key, h] of horasByProjEmp) {
+    for (const [key, h] of Array.from(horasByProjEmp.entries())) {
       const [pid, uid] = key.split('|')
       const costHour = costHourByEmp.get(uid) || 0
       const agg = aggByProject.get(pid) || { revenue: 0, horas: 0, costoLabor: 0 }
@@ -198,7 +198,7 @@ export async function GET(request: NextRequest) {
       agg.costoLabor += h * costHour
       aggByProject.set(pid, agg)
     }
-    for (const [pid, rev] of revenueProject) {
+    for (const [pid, rev] of Array.from(revenueProject.entries())) {
       const agg = aggByProject.get(pid) || { revenue: 0, horas: 0, costoLabor: 0 }
       agg.revenue += rev
       aggByProject.set(pid, agg)
@@ -226,7 +226,7 @@ export async function GET(request: NextRequest) {
     
     // Calcular promedio: total de horas / total de registros (por área/tipo, no por empleado)
     const specificTypeAvgHours = new Map<string, number>() // key: specificType -> avgHours
-    for (const [type, agg] of specificTypeAgg) {
+    for (const [type, agg] of Array.from(specificTypeAgg.entries())) {
       // Promedio global = Suma de todas las horas / Total de registros (sin importar empleado)
       specificTypeAvgHours.set(type, agg.totalCount > 0 ? agg.totalHours / agg.totalCount : 0)
     }
@@ -250,7 +250,7 @@ export async function GET(request: NextRequest) {
     
     // Calcular promedio por área: total de horas / total de registros (sin importar empleado)
     const generalTypeAvg = new Map<string, number>() // key: generalType (video/foto/diseno) -> avgHours
-    for (const [type, agg] of generalTypeAgg) {
+    for (const [type, agg] of Array.from(generalTypeAgg.entries())) {
       // Promedio global del área = Suma de todas las horas / Total de registros (sin importar empleado)
       generalTypeAvg.set(type, agg.totalCount > 0 ? agg.totalHours / agg.totalCount : 0)
     }
@@ -290,7 +290,7 @@ export async function GET(request: NextRequest) {
       // asignación de horas estimadas usando promedios específicos por tipo
       const allocByEmp = new Map<string, number>()
       
-      function addAllocSpecific(specificType: string, units: number) {
+      const addAllocSpecific = (specificType: string, units: number) => {
         if (units <= 0) return
         
         // Usar el promedio específico del tipo (ej: reel_corto, reel_largo, etc.)
@@ -313,7 +313,7 @@ export async function GET(request: NextRequest) {
         }
       }
       
-      function addAllocGeneral(generalType: string, units: number) {
+      const addAllocGeneral = (generalType: string, units: number) => {
         if (units <= 0) return
         
         // Usar el promedio general del tipo (para compatibilidad con proyectos antiguos)
@@ -398,7 +398,7 @@ export async function GET(request: NextRequest) {
       
       // Si no hay tipos específicos, usar generales
       if (horasByType.length === 0) {
-        function addHorasGeneral(generalType: string, units: number) {
+        const addHorasGeneral = (generalType: string, units: number) => {
           if (units <= 0) return
           const avgHours = generalTypeAvg.get(generalType) || 0
           if (avgHours > 0) {
@@ -544,10 +544,10 @@ export async function GET(request: NextRequest) {
 
     // Objetivos por cliente (usando monthly_* específicos del proyecto)
     // Usar promedios específicos (specificTypeAvgHours) en lugar de generales
-    function getAvgSpecific(specificType: string): number {
+    const getAvgSpecific = (specificType: string): number => {
       return specificTypeAvgHours.get(specificType) || 0
     }
-    function getAvgGeneral(generalType: string): number {
+    const getAvgGeneral = (generalType: string): number => {
       return generalTypeAvg.get(generalType) || 0
     }
     
