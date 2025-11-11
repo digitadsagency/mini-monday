@@ -130,7 +130,7 @@ export async function getFinanceMetrics(month: string): Promise<FinanceMetrics> 
   const revenueProject = new Map<string, number>()
   for (const [pid, amount] of Array.from(billingPerProject.entries())) revenueProject.set(pid, amount)
   for (const [cid, amount] of Array.from(billingPerClient.entries())) {
-    const projs = projects.filter(p => p.clientId === cid)
+    const projs = projects.filter((p: any) => p.clientId === cid)
     if (projs.length === 0) {
       // keep at client level only; handled below
       continue
@@ -200,9 +200,9 @@ export async function getFinanceMetrics(month: string): Promise<FinanceMetrics> 
   for (const [cid, projs] of Array.from(clientProjects.entries())) {
     if (!projs || projs.length === 0) continue
     const clientName = cid ? (clientById.get(cid)?.name || 'Cliente') : 'No asignado'
-    const revenue = projs.reduce((s, p) => s + (p.revenue || 0), 0)
-    const horas = projs.reduce((s, p) => s + (p.horas || 0), 0)
-    const costoLabor = projs.reduce((s, p) => s + (p.costoLabor || 0), 0)
+    const revenue = projs.reduce((s: number, p: any) => s + (p.revenue || 0), 0)
+    const horas = projs.reduce((s: number, p: any) => s + (p.horas || 0), 0)
+    const costoLabor = projs.reduce((s: number, p: any) => s + (p.costoLabor || 0), 0)
     const margenAbs = revenue - costoLabor
     const margenPct = revenue > 0 ? +(margenAbs / revenue).toFixed(2) : null
     const alertas: string[] = []
@@ -227,11 +227,11 @@ export async function getFinanceMetrics(month: string): Promise<FinanceMetrics> 
     })
   }
 
-  const ingresos = clientsMetrics.reduce((s,c)=> s + (c.revenue||0), 0)
-  const costoLabor = clientsMetrics.reduce((s,c)=> s + (c.costoLabor||0), 0)
+  const ingresos = clientsMetrics.reduce((s: number, c: any) => s + (c.revenue||0), 0)
+  const costoLabor = clientsMetrics.reduce((s: number, c: any) => s + (c.costoLabor||0), 0)
   const margenAbs = ingresos - costoLabor
   const margenPct = ingresos > 0 ? +(margenAbs/ingresos).toFixed(2) : null
-  const utilizacionPromedioEquipo = employeesKPIs.length > 0 ? (employeesKPIs.reduce((s,e)=> s + e.utilizacion, 0) / employeesKPIs.length) : 0
+  const utilizacionPromedioEquipo = employeesKPIs.length > 0 ? (employeesKPIs.reduce((s: number, e: any) => s + e.utilizacion, 0) / employeesKPIs.length) : 0
 
   return {
     month,
