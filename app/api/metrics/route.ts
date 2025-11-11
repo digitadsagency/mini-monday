@@ -375,7 +375,7 @@ export async function GET(request: NextRequest) {
 
       // Calcular desglose de horas por tipo específico (para mostrar en UI)
       const horasByType: any[] = []
-      function addHorasByType(specificType: string, units: number) {
+      const addHorasByType = (specificType: string, units: number) => {
         if (units <= 0) return
         const avgHours = specificTypeAvgHours.get(specificType) || 0
         if (avgHours > 0) {
