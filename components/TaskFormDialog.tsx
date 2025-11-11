@@ -12,11 +12,6 @@ import { z } from 'zod'
 import { Textarea } from './ui/textarea'
 import { Label } from './ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
-import { Popover, PopoverContent, PopoverTrigger } from './ui/popover'
-import { CalendarIcon, Loader2, User } from 'lucide-react'
-import { Calendar } from './ui/calendar'
-import { format } from 'date-fns'
-import { cn } from '@/lib/utils'
 
 // Simplified schema for the form
 const TaskFormSchema = z.object({
