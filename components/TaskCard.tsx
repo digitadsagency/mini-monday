@@ -180,9 +180,9 @@ export const TaskCard = memo(function TaskCard({ task, onClick, onStatusChange, 
         </div>
 
         {/* Description */}
-        {(task.description_md || task.description) && (
+        {task.description_md && (
           <p className="text-xs text-gray-600 line-clamp-2">
-            {(task.description_md || task.description || '').replace(/[#*`]/g, '').substring(0, 100)}
+            {(task.description_md || '').replace(/[#*`]/g, '').substring(0, 100)}
           </p>
         )}
 
