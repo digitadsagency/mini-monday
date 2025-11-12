@@ -10,7 +10,7 @@ export const UsersService = {
     try {
       const response = await sheets.spreadsheets.values.get({
         spreadsheetId,
-        range: `${USERS_SHEET_NAME}!A:F`, // Assuming A-F for user fields
+        range: `${USERS_SHEET_NAME}!A:G`, // A-G: id, email, name, role, avatar, password, created_at
       });
 
       const rows = response.data.values;

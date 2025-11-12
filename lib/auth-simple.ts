@@ -40,11 +40,26 @@ export const authenticateUser = async (email: string, password: string): Promise
   try {
     // First try to find user in Google Sheets
     const users = await UsersService.getAllUsers()
-    const user = users.find(u => u.email === email)
+    console.log('🔍 authenticateUser: Total users loaded:', users.length)
+    console.log('🔍 authenticateUser: Looking for email:', email)
+    
+    const user = users.find(u => {
+      const userEmail = (u.email || '').toLowerCase().trim()
+      const searchEmail = email.toLowerCase().trim()
+      return userEmail === searchEmail
+    })
+    
+    console.log('🔍 authenticateUser: User found:', user ? { id: user.id, email: user.email, name: user.name, hasPassword: !!user.password } : 'NOT FOUND')
     
     if (user) {
+      // Verificar que la contraseña existe
+      if (!user.password) {
+        console.error('❌ authenticateUser: User has no password field')
+        return null
+      }
+      
       // Check if password is hashed or plain text
-      const isHashed = user.password.startsWith('$2a$') || user.password.startsWith('$2b$') || user.password.startsWith('$2y$')
+      const isHashed = user.password && (user.password.startsWith('$2a$') || user.password.startsWith('$2b$') || user.password.startsWith('$2y$'))
       
       let isValidPassword = false
       
@@ -52,12 +67,17 @@ export const authenticateUser = async (email: string, password: string): Promise
         // Verify password using bcrypt
         const bcrypt = require('bcryptjs')
         isValidPassword = await bcrypt.compare(password, user.password)
+        console.log('🔍 authenticateUser: Password is hashed, comparison result:', isValidPassword)
       } else {
-        // Direct comparison for plain text passwords
+        // Direct comparison for plain text passwords (case-sensitive)
         isValidPassword = password === user.password
+        console.log('🔍 authenticateUser: Password is plain text, comparison result:', isValidPassword)
+        console.log('🔍 authenticateUser: Input password:', password)
+        console.log('🔍 authenticateUser: Stored password:', user.password)
       }
       
       if (isValidPassword) {
+        console.log('✅ authenticateUser: Password valid for user:', user.email)
         return {
           id: user.id,
           email: user.email,
@@ -65,6 +85,8 @@ export const authenticateUser = async (email: string, password: string): Promise
           role: user.role || 'member',
           avatar: user.avatar
         }
+      } else {
+        console.error('❌ authenticateUser: Invalid password for user:', user.email)
       }
     }
     
