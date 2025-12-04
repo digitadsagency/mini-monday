@@ -38,61 +38,86 @@ export const verifyToken = (token: string): AuthUser | null => {
 
 export const authenticateUser = async (email: string, password: string): Promise<AuthUser | null> => {
   try {
-    // First try to find user in Google Sheets
-    const users = await UsersService.getAllUsers()
-    console.log('🔍 authenticateUser: Total users loaded:', users.length)
-    console.log('🔍 authenticateUser: Looking for email:', email)
+    console.log('🔍 authenticateUser: Starting authentication for email:', email)
     
-    const user = users.find(u => {
-      const userEmail = (u.email || '').toLowerCase().trim()
-      const searchEmail = email.toLowerCase().trim()
-      return userEmail === searchEmail
-    })
-    
-    console.log('🔍 authenticateUser: User found:', user ? { id: user.id, email: user.email, name: user.name, hasPassword: !!user.password } : 'NOT FOUND')
+    // Buscar usuario en Google Sheets
+    const user = await UsersService.getUserByEmail(email)
     
     if (user) {
+      console.log('🔍 authenticateUser: User found in Sheets:', { 
+        id: user.id, 
+        email: user.email, 
+        name: user.name || user.username, 
+        hasPassword: !!user.password,
+        passwordLength: user.password?.length || 0
+      })
+      
       // Verificar que la contraseña existe
-      if (!user.password) {
-        console.error('❌ authenticateUser: User has no password field')
+      if (!user.password || user.password.trim() === '') {
+        console.error('❌ authenticateUser: User has no password set in Sheets')
         return null
       }
       
       // Check if password is hashed or plain text
-      const isHashed = user.password && (user.password.startsWith('$2a$') || user.password.startsWith('$2b$') || user.password.startsWith('$2y$'))
+      const isHashed = user.password && (
+        user.password.startsWith('$2a$') || 
+        user.password.startsWith('$2b$') || 
+        user.password.startsWith('$2y$') ||
+        user.password.startsWith('$2$')
+      )
       
       let isValidPassword = false
       
       if (isHashed) {
         // Verify password using bcrypt
         const bcrypt = require('bcryptjs')
-        isValidPassword = await bcrypt.compare(password, user.password)
-        console.log('🔍 authenticateUser: Password is hashed, comparison result:', isValidPassword)
+        try {
+          isValidPassword = await bcrypt.compare(password, user.password)
+          console.log('🔍 authenticateUser: Password is hashed, comparison result:', isValidPassword)
+        } catch (bcryptError) {
+          console.error('❌ authenticateUser: Error comparing hashed password:', bcryptError)
+          isValidPassword = false
+        }
       } else {
         // Direct comparison for plain text passwords (case-sensitive)
-        isValidPassword = password === user.password
-        console.log('🔍 authenticateUser: Password is plain text, comparison result:', isValidPassword)
-        console.log('🔍 authenticateUser: Input password:', password)
-        console.log('🔍 authenticateUser: Stored password:', user.password)
+        // También comparar sin espacios en blanco al inicio/final
+        const inputPassword = password.trim()
+        const storedPassword = user.password.trim()
+        isValidPassword = inputPassword === storedPassword
+        
+        console.log('🔍 authenticateUser: Password is plain text')
+        console.log('🔍 authenticateUser: Input password length:', inputPassword.length)
+        console.log('🔍 authenticateUser: Stored password length:', storedPassword.length)
+        console.log('🔍 authenticateUser: Passwords match:', isValidPassword)
+        
+        // No loggear las contraseñas completas por seguridad, solo los primeros caracteres
+        if (!isValidPassword) {
+          console.log('🔍 authenticateUser: Input password starts with:', inputPassword.substring(0, 2))
+          console.log('🔍 authenticateUser: Stored password starts with:', storedPassword.substring(0, 2))
+        }
       }
       
       if (isValidPassword) {
-        console.log('✅ authenticateUser: Password valid for user:', user.email)
+        console.log('✅ authenticateUser: Authentication successful for user:', user.email)
         return {
           id: user.id,
           email: user.email,
           name: user.name || user.username || 'Usuario',
-          role: user.role || 'member',
+          role: (user.role || 'member') as 'owner' | 'admin' | 'member',
           avatar: user.avatar
         }
       } else {
         console.error('❌ authenticateUser: Invalid password for user:', user.email)
+        return null
       }
     }
+    
+    console.log('⚠️ authenticateUser: User not found in Google Sheets, trying fallback...')
     
     // Fallback to hardcoded users for backward compatibility
     const hardcodedUser = findUserByEmail(email)
     if (hardcodedUser && verifyPassword(password, hardcodedUser.password)) {
+      console.log('✅ authenticateUser: Authentication successful via fallback for:', email)
       return {
         id: hardcodedUser.id,
         email: hardcodedUser.email,
@@ -102,9 +127,14 @@ export const authenticateUser = async (email: string, password: string): Promise
       }
     }
     
+    console.error('❌ authenticateUser: Authentication failed - user not found or invalid credentials')
     return null
   } catch (error) {
-    console.error('Error authenticating user:', error)
+    console.error('❌ authenticateUser: Error during authentication:', error)
+    if (error instanceof Error) {
+      console.error('❌ authenticateUser: Error message:', error.message)
+      console.error('❌ authenticateUser: Error stack:', error.stack)
+    }
     return null
   }
 }

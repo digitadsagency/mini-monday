@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
     // Mapear nombres de empleados
     const userNameById = new Map<string, string>()
     for (const u of users) {
-      const uid = u.id || u.user_id
+      const uid = u.id || (u as any).user_id
       const name = u.name || u.username || ''
       if (uid && name) userNameById.set(uid, name)
     }
