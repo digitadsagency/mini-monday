@@ -1,30 +1,36 @@
 import { google } from 'googleapis';
 
-let auth: any = null;
-
+// NO cachear auth para evitar problemas entre diferentes proyectos/spreadsheets
 export const getSheetsClient = async () => {
-  if (!auth) {
-    try {
-      auth = new google.auth.GoogleAuth({
-        credentials: {
-          client_email: process.env.GOOGLE_CLIENT_EMAIL,
-          private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-        },
-        scopes: [
-          'https://www.googleapis.com/auth/spreadsheets',
-          'https://www.googleapis.com/auth/drive'
-        ],
-      });
-      
-      console.log('✅ Google Sheets authentication initialized');
-    } catch (error) {
-      console.error('❌ Error initializing Google Sheets auth:', error);
-      throw error;
-    }
+  try {
+    const clientEmail = process.env.GOOGLE_CLIENT_EMAIL;
+    const privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n');
+    const spreadsheetId = process.env.SHEETS_SPREADSHEET_ID;
+    
+    console.log('🔧 Sheets Config:', {
+      clientEmail: clientEmail ? `${clientEmail.substring(0, 20)}...` : 'NOT SET',
+      spreadsheetId: spreadsheetId ? `${spreadsheetId.substring(0, 15)}...` : 'NOT SET',
+      hasPrivateKey: !!privateKey
+    });
+    
+    const auth = new google.auth.GoogleAuth({
+      credentials: {
+        client_email: clientEmail,
+        private_key: privateKey,
+      },
+      scopes: [
+        'https://www.googleapis.com/auth/spreadsheets',
+        'https://www.googleapis.com/auth/drive'
+      ],
+    });
+    
+    console.log('✅ Google Sheets authentication initialized');
+    const sheets = google.sheets({ version: 'v4', auth });
+    return sheets;
+  } catch (error) {
+    console.error('❌ Error initializing Google Sheets auth:', error);
+    throw error;
   }
-
-  const sheets = google.sheets({ version: 'v4', auth });
-  return sheets;
 };
 
 export const getSpreadsheetId = (): string => {
@@ -32,6 +38,7 @@ export const getSpreadsheetId = (): string => {
   if (!id) {
     throw new Error('SHEETS_SPREADSHEET_ID environment variable is required');
   }
+  console.log('📊 Using Spreadsheet ID:', id.substring(0, 15) + '...');
   return id;
 };
 

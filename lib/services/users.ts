@@ -19,10 +19,11 @@ export const UsersService = {
     const spreadsheetId = getSpreadsheetId();
 
     try {
-      // Intentar leer un rango más amplio para asegurar que capturamos todas las columnas
+      // Leer las columnas A-G específicamente según la estructura esperada:
+      // A: id, B: email, C: name, D: role, E: avatar, F: password, G: created_at
       const response = await sheets.spreadsheets.values.get({
         spreadsheetId,
-        range: `${USERS_SHEET_NAME}!A:Z`, // Leer hasta Z para capturar todas las columnas posibles
+        range: `${USERS_SHEET_NAME}!A:G`,
       });
 
       const rows = response.data.values;
@@ -33,7 +34,28 @@ export const UsersService = {
 
       // La primera fila son los headers
       const headers = rows[0] || [];
-      console.log('📋 User sheet headers:', headers);
+      console.log('📋 User sheet headers (raw):', headers);
+      
+      // Detectar si hay headers duplicados o mal etiquetados
+      // La estructura esperada es: id, email, name, role, avatar, password, created_at
+      // Si la columna F (índice 5) tiene header "created_at" pero los datos parecen passwords,
+      // significa que el header está mal etiquetado
+      const expectedHeaders = ['id', 'email', 'name', 'role', 'avatar', 'password', 'created_at'];
+      
+      // Verificar si hay problema con los headers (dos "created_at")
+      const createdAtCount = headers.filter((h: string) => 
+        (h || '').toLowerCase().trim() === 'created_at'
+      ).length;
+      
+      const hasPasswordHeader = headers.some((h: string) => 
+        (h || '').toLowerCase().trim() === 'password'
+      );
+      
+      console.log('📋 Header analysis:', { 
+        createdAtCount, 
+        hasPasswordHeader,
+        needsPositionalMapping: createdAtCount > 1 || !hasPasswordHeader
+      });
 
       // Mapear las filas a objetos usuario
       const users: User[] = rows.slice(1)
@@ -44,48 +66,58 @@ export const UsersService = {
             email: '',
           };
 
-          headers.forEach((header, index) => {
-            const headerLower = (header || '').toLowerCase().trim();
-            const value = row[index];
+          // Si los headers están mal (no hay password o hay duplicados), usar mapeo posicional
+          if (!hasPasswordHeader || createdAtCount > 1) {
+            // Mapeo posicional según estructura esperada
+            user.id = row[0] || '';
+            user.email = (row[1] || '').toLowerCase().trim();
+            user.name = row[2] || '';
+            user.role = (row[3] || 'member') as 'owner' | 'admin' | 'member';
+            user.avatar = row[4] || '';
+            user.password = row[5] || ''; // Columna F es password
+            user.created_at = row[6] || ''; // Columna G es created_at
+          } else {
+            // Usar headers normalmente
+            headers.forEach((header: string, index: number) => {
+              const headerLower = (header || '').toLowerCase().trim();
+              const value = row[index];
 
-            switch (headerLower) {
-              case 'id':
-                user.id = value || '';
-                break;
-              case 'email':
-                user.email = (value || '').toLowerCase().trim();
-                break;
-              case 'name':
-                user.name = value || '';
-                break;
-              case 'username':
-                user.username = value || '';
-                break;
-              case 'role':
-                user.role = (value || 'member') as 'owner' | 'admin' | 'member';
-                break;
-              case 'avatar':
-                user.avatar = value || '';
-                break;
-              case 'password':
-                user.password = value || '';
-                break;
-              case 'created_at':
-                user.created_at = value || '';
-                break;
-              default:
-                // Si hay otros campos, los ignoramos por ahora
-                break;
-            }
-          });
+              switch (headerLower) {
+                case 'id':
+                  user.id = value || '';
+                  break;
+                case 'email':
+                  user.email = (value || '').toLowerCase().trim();
+                  break;
+                case 'name':
+                  user.name = value || '';
+                  break;
+                case 'username':
+                  user.username = value || '';
+                  break;
+                case 'role':
+                  user.role = (value || 'member') as 'owner' | 'admin' | 'member';
+                  break;
+                case 'avatar':
+                  user.avatar = value || '';
+                  break;
+                case 'password':
+                  user.password = value || '';
+                  break;
+                case 'created_at':
+                  user.created_at = value || '';
+                  break;
+              }
+            });
+          }
 
           return user;
         })
         .filter(user => user.id && user.email); // Solo usuarios válidos con id y email
 
-      console.log(`✅ Loaded ${users.length} users from Google Sheets`);
+      console.log(`✅ Loaded ${users.length} users from Google Sheets (spreadsheet: ${spreadsheetId.substring(0, 10)}...)`);
       users.forEach(user => {
-        console.log(`  - ${user.email} (${user.name || user.username || 'Sin nombre'}) - Role: ${user.role || 'member'} - Has password: ${!!user.password}`);
+        console.log(`  - ${user.email} (${user.name || user.username || 'Sin nombre'}) - Role: ${user.role || 'member'} - Has password: ${!!user.password} ${user.password ? '(length: ' + user.password.length + ')' : ''}`);
       });
 
       return users;
