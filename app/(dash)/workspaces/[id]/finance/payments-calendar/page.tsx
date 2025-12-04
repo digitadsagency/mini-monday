@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/useAuth'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { ArrowLeft, DollarSign, Calendar as CalendarIcon, CheckCircle, AlertCircle, Plus, Edit, Trash2 } from 'lucide-react'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { ArrowLeft, DollarSign, Calendar as CalendarIcon, CheckCircle, AlertCircle, Plus, Edit, Trash2, ChevronDown, ChevronUp } from 'lucide-react'
 import { PaymentRecordDialog } from '@/components/PaymentRecordDialog'
 import { toLocalYMD } from '@/lib/time'
 
@@ -26,6 +27,8 @@ export default function PaymentsCalendarPage({ params }: { params: { id: string 
   const [selectedDayForPayment, setSelectedDayForPayment] = useState<string | null>(null)
   const [selectedBillingForPayment, setSelectedBillingForPayment] = useState<string | null>(null)
   const [editingPayment, setEditingPayment] = useState<any | null>(null)
+  const [expandedDays, setExpandedDays] = useState<Set<number>>(new Set()) // Para expandir/contraer días con muchos pagos
+  const [summaryFilterMonth, setSummaryFilterMonth] = useState<string>('current') // 'current', 'all', o YYYY-MM
   const isAdmin = useMemo(() => {
     const name = (user?.name || '').toLowerCase()
     return name === 'miguel' || name === 'raul'
@@ -179,49 +182,123 @@ export default function PaymentsCalendarPage({ params }: { params: { id: string 
     ).size
   }, [billings, projects])
 
+  // Generar lista de meses disponibles para el filtro
+  const availableMonths = useMemo(() => {
+    const months: { value: string; label: string }[] = [
+      { value: 'current', label: 'Mes actual' },
+      { value: 'all', label: 'Todos los meses' }
+    ]
+    
+    // Agregar los últimos 12 meses
+    const now = new Date()
+    for (let i = 0; i < 12; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+      const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+      const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
+      const label = `${monthNames[d.getMonth()]} ${d.getFullYear()}`
+      months.push({ value, label })
+    }
+    
+    return months
+  }, [])
+
   // Tabla de resumen de pagos del mes (solo clientes activos)
   const monthlyPaymentSummary = useMemo(() => {
-    if (!selectedDate) return []
-    const monthStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}`
-    const summary = billings
+    // Determinar qué mes filtrar
+    let filterMonthStr: string | null = null
+    if (summaryFilterMonth === 'current') {
+      filterMonthStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}`
+    } else if (summaryFilterMonth !== 'all') {
+      filterMonthStr = summaryFilterMonth
+    }
+    
+    const summary: any[] = []
+    
+    // Para cada billing de un cliente activo
+    billings
       .filter(b => {
         const project = projects.find(p => p.id === (b.project_id || b.projectId))
         return project?.status === 'active'
       })
-      .map(b => {
+      .forEach(b => {
         const project = projects.find(p => p.id === (b.project_id || b.projectId))
         const expectedAmount = Number(b.monthly_amount || b.monthlyAmountMXN || 0)
         const paymentDay = Number(b.payment_day || b.paymentDay || 0)
-        const expectedDate = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), paymentDay)
-        const expectedDateStr = toLocalYMD(expectedDate)
         
-        // Buscar si hay un pago registrado para este billing en este mes
-        const payment = paymentRecords.find(pr => 
-          pr.billing_id === b.id && 
-          pr.paid_date === expectedDateStr
+        // Buscar TODOS los pagos de este billing (de allPaymentRecords)
+        const billingPayments = allPaymentRecords.filter(pr => 
+          pr.billing_id === b.id || pr.project_id === (b.project_id || b.projectId)
         )
         
-        const paidAmount = payment ? Number(payment.paid_amount || 0) : 0
-        const isPaid = paidAmount > 0
-        const isComplete = isPaid && paidAmount >= expectedAmount
-        const isOnTime = payment ? payment.is_on_time : false
-        
-        return {
-          clientName: project?.name || 'Cliente',
-          expectedDate: expectedDateStr,
-          expectedAmount,
-          paidAmount,
-          isPaid,
-          isComplete,
-          isOnTime,
-          daysDelay: payment?.days_delay || 0,
-          paymentId: payment?.id
+        // Si no tiene pagos, agregar como pendiente para el mes actual
+        if (billingPayments.length === 0) {
+          const refDate = filterMonthStr 
+            ? new Date(parseInt(filterMonthStr.split('-')[0]), parseInt(filterMonthStr.split('-')[1]) - 1, paymentDay)
+            : new Date(selectedDate.getFullYear(), selectedDate.getMonth(), paymentDay)
+          
+          if (filterMonthStr === null || filterMonthStr === `${refDate.getFullYear()}-${String(refDate.getMonth() + 1).padStart(2, '0')}`) {
+            summary.push({
+              clientName: project?.name || 'Cliente',
+              expectedDate: toLocalYMD(refDate),
+              expectedAmount,
+              paidAmount: 0,
+              isPaid: false,
+              isComplete: false,
+              isOnTime: false,
+              daysDelay: 0,
+              paymentId: null
+            })
+          }
+        } else {
+          // Agregar cada pago registrado
+          billingPayments.forEach(payment => {
+            const paymentDate = payment.paid_date || ''
+            const paymentMonth = paymentDate.substring(0, 7)
+            
+            // Filtrar por mes si es necesario
+            if (filterMonthStr !== null && paymentMonth !== filterMonthStr) return
+            
+            const paidAmount = Number(payment.paid_amount || 0)
+            const expectedDate = new Date(parseInt(paymentMonth.split('-')[0]), parseInt(paymentMonth.split('-')[1]) - 1, paymentDay)
+            
+            summary.push({
+              clientName: project?.name || 'Cliente',
+              expectedDate: toLocalYMD(expectedDate),
+              paidDate: paymentDate,
+              expectedAmount,
+              paidAmount,
+              isPaid: paidAmount > 0,
+              isComplete: paidAmount >= expectedAmount,
+              isOnTime: payment.is_on_time,
+              daysDelay: payment.days_delay || 0,
+              paymentId: payment.id
+            })
+          })
+          
+          // Si está filtrando por un mes específico y no hay pago en ese mes, mostrar como pendiente
+          if (filterMonthStr) {
+            const hasPaymentInMonth = billingPayments.some(p => (p.paid_date || '').startsWith(filterMonthStr))
+            if (!hasPaymentInMonth) {
+              const refDate = new Date(parseInt(filterMonthStr.split('-')[0]), parseInt(filterMonthStr.split('-')[1]) - 1, paymentDay)
+              summary.push({
+                clientName: project?.name || 'Cliente',
+                expectedDate: toLocalYMD(refDate),
+                expectedAmount,
+                paidAmount: 0,
+                isPaid: false,
+                isComplete: false,
+                isOnTime: false,
+                daysDelay: 0,
+                paymentId: null
+              })
+            }
+          }
         }
       })
-      .sort((a, b) => new Date(a.expectedDate).getTime() - new Date(b.expectedDate).getTime())
     
-    return summary
-  }, [billings, projects, paymentRecords, selectedDate])
+    // Ordenar por fecha (de más antigua a más reciente)
+    return summary.sort((a, b) => new Date(a.expectedDate).getTime() - new Date(b.expectedDate).getTime())
+  }, [billings, projects, allPaymentRecords, selectedDate, summaryFilterMonth])
 
   // Ahora sí, los returns condicionales DESPUÉS de todos los hooks
   if (authLoading || loading) {
@@ -475,48 +552,59 @@ export default function PaymentsCalendarPage({ params }: { params: { id: string 
             <div className="grid grid-cols-7 gap-1">
               {calendarDays.map((date, index) => {
                 if (!date) {
-                  return <div key={`empty-${index}`} className="min-h-[140px] p-2 bg-gray-50 rounded-lg" />
+                  return <div key={`empty-${index}`} className="min-h-[100px] p-1 bg-gray-50 rounded-lg" />
                 }
 
                 const expectedPayments = getExpectedPaymentsForDay(date.getDate())
                 const paidPayments = getPaidPaymentsForDay(date)
                 const isTodayDate = isToday(date)
                 const isCurrentMonthDay = isCurrentMonth(date)
+                const dayNum = date.getDate()
+                const totalPayments = expectedPayments.length + paidPayments.length
+                const isExpanded = expandedDays.has(dayNum)
+                const shouldCollapse = totalPayments > 2 && !isExpanded
+
+                const toggleExpand = () => {
+                  setExpandedDays(prev => {
+                    const next = new Set(prev)
+                    if (next.has(dayNum)) {
+                      next.delete(dayNum)
+                    } else {
+                      next.add(dayNum)
+                    }
+                    return next
+                  })
+                }
 
                 return (
                   <div
                     key={index}
                     className={`
-                      min-h-[140px] p-2 border border-gray-200 rounded-lg
+                      min-h-[100px] p-1 border border-gray-200 rounded-lg overflow-hidden
                       ${isCurrentMonthDay ? 'bg-white' : 'bg-gray-50'}
                       ${isTodayDate ? 'ring-2 ring-blue-500' : ''}
-                      ${expectedPayments.length > 0 || paidPayments.length > 0 ? 'bg-green-50 border-green-300' : ''}
+                      ${expectedPayments.length > 0 || paidPayments.length > 0 ? 'bg-green-50/50 border-green-200' : ''}
                     `}
                   >
-                    <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center justify-between mb-1">
                       <span className={`
-                        text-sm font-medium
+                        text-xs font-medium
                         ${isCurrentMonthDay ? 'text-gray-900' : 'text-gray-400'}
                         ${isTodayDate ? 'text-blue-600 font-bold' : ''}
                       `}>
                         {date.getDate()}
                       </span>
-                      <div className="flex items-center gap-1">
-                        {expectedPayments.length > 0 && (
-                          <Badge className="bg-blue-100 text-blue-700 border-blue-300 text-xs">
-                            {expectedPayments.length}
-                          </Badge>
-                        )}
-                        {paidPayments.length > 0 && (
-                          <Badge className="bg-green-100 text-green-700 border-green-300 text-xs">
-                            {paidPayments.length}
+                      <div className="flex items-center gap-0.5">
+                        {totalPayments > 0 && (
+                          <Badge className="bg-blue-100 text-blue-700 border-blue-300 text-[10px] px-1 py-0">
+                            {totalPayments}
                           </Badge>
                         )}
                         {isCurrentMonthDay && (
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-5 w-5 p-0"
+                            className="h-4 w-4 p-0"
                             onClick={() => handleRegisterPayment(date)}
                             title="Registrar pago"
                           >
@@ -526,84 +614,107 @@ export default function PaymentsCalendarPage({ params }: { params: { id: string 
                       </div>
                     </div>
                     
-                    <div className="space-y-1">
-                      {/* Pagos esperados */}
-                      {expectedPayments.map((payment) => {
+                    <div className="space-y-0.5 text-[10px]">
+                      {/* Pagos esperados - versión compacta */}
+                      {expectedPayments.slice(0, shouldCollapse ? 1 : undefined).map((payment) => {
                         const hasPaid = paidPayments.some(pp => pp.billing_id === payment.id)
                         const paymentId = payment.id || payment.project_id || payment.projectId
                         return (
                           <div
                             key={`expected-${paymentId}`}
-                            className={`p-1.5 rounded border text-xs ${
+                            className={`p-1 rounded border ${
                               hasPaid 
                                 ? 'bg-green-100 border-green-300' 
                                 : 'bg-yellow-50 border-yellow-200'
                             }`}
                           >
-                            <div className="flex items-center space-x-1 mb-1">
-                              <DollarSign className={`h-3 w-3 ${hasPaid ? 'text-green-600' : 'text-yellow-600'}`} />
+                            <div className="flex items-center gap-0.5">
+                              <DollarSign className={`h-2.5 w-2.5 flex-shrink-0 ${hasPaid ? 'text-green-600' : 'text-yellow-600'}`} />
                               <span className={`font-medium truncate ${hasPaid ? 'text-green-800' : 'text-yellow-800'}`}>
-                                {payment.projectName}
+                                {payment.projectName.length > 12 ? payment.projectName.substring(0, 12) + '...' : payment.projectName}
                               </span>
                             </div>
                             <div className={`font-semibold ${hasPaid ? 'text-green-700' : 'text-yellow-700'}`}>
                               {formatMXN(payment.amount)}
-                              {!hasPaid && <span className="text-xs ml-1">(Pendiente)</span>}
+                              {!hasPaid && <span className="text-[8px] ml-0.5">(Pend.)</span>}
                             </div>
                           </div>
                         )
                       })}
                       
-                      {/* Pagos realizados */}
-                      {paidPayments.map((payment) => {
+                      {/* Pagos realizados - versión compacta */}
+                      {paidPayments.slice(0, shouldCollapse ? 1 : undefined).map((payment) => {
                         const paymentId = payment.id
                         return (
                           <div
                             key={`paid-${paymentId}`}
-                            className={`p-1.5 rounded border text-xs group ${
+                            className={`p-1 rounded border group ${
                               payment.isOnTime 
                                 ? 'bg-green-100 border-green-300' 
                                 : 'bg-red-100 border-red-300'
                             }`}
                           >
-                            <div className="flex items-center justify-between mb-1">
-                              <div className="flex items-center space-x-1 flex-1">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-0.5 flex-1 min-w-0">
                                 {payment.isOnTime ? (
-                                  <CheckCircle className="h-3 w-3 text-green-600" />
+                                  <CheckCircle className="h-2.5 w-2.5 flex-shrink-0 text-green-600" />
                                 ) : (
-                                  <AlertCircle className="h-3 w-3 text-red-600" />
+                                  <AlertCircle className="h-2.5 w-2.5 flex-shrink-0 text-red-600" />
                                 )}
                                 <span className={`font-medium truncate ${payment.isOnTime ? 'text-green-800' : 'text-red-800'}`}>
-                                  {payment.projectName} {payment.isOnTime ? '(A tiempo)' : `(${payment.daysDelay || 0} días tarde)`}
+                                  {payment.projectName.length > 10 ? payment.projectName.substring(0, 10) + '...' : payment.projectName}
                                 </span>
                               </div>
-                              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="h-4 w-4 p-0"
+                                  className="h-3 w-3 p-0"
                                   onClick={() => handleEditPayment(payment)}
                                   title="Editar pago"
                                 >
-                                  <Edit className="h-3 w-3" />
+                                  <Edit className="h-2 w-2" />
                                 </Button>
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="h-4 w-4 p-0 text-red-600 hover:text-red-700"
+                                  className="h-3 w-3 p-0 text-red-600 hover:text-red-700"
                                   onClick={() => handleDeletePayment(paymentId)}
                                   title="Eliminar pago"
                                 >
-                                  <Trash2 className="h-3 w-3" />
+                                  <Trash2 className="h-2 w-2" />
                                 </Button>
                               </div>
                             </div>
                             <div className={`font-semibold ${payment.isOnTime ? 'text-green-700' : 'text-red-700'}`}>
                               {formatMXN(payment.amount)}
+                              {!payment.isOnTime && payment.daysDelay > 0 && (
+                                <span className="text-[8px] ml-0.5">({payment.daysDelay}d)</span>
+                              )}
                             </div>
                           </div>
                         )
                       })}
+
+                      {/* Botón para expandir/contraer si hay más de 2 pagos */}
+                      {totalPayments > 2 && (
+                        <button
+                          onClick={toggleExpand}
+                          className="w-full text-center py-0.5 bg-gray-100 hover:bg-gray-200 rounded text-[10px] text-gray-600 flex items-center justify-center gap-0.5"
+                        >
+                          {isExpanded ? (
+                            <>
+                              <ChevronUp className="h-2.5 w-2.5" />
+                              Menos
+                            </>
+                          ) : (
+                            <>
+                              <ChevronDown className="h-2.5 w-2.5" />
+                              +{totalPayments - 2} más
+                            </>
+                          )}
+                        </button>
+                      )}
                     </div>
                   </div>
                 )
@@ -718,13 +829,29 @@ export default function PaymentsCalendarPage({ params }: { params: { id: string 
 
         {/* Tabla de resumen de pagos del mes */}
         <div className="bg-white rounded-lg shadow-sm border p-6 mt-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Resumen de Pagos del Mes</h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">Resumen de Pagos</h3>
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-gray-600">Filtrar por:</label>
+              <Select value={summaryFilterMonth} onValueChange={setSummaryFilterMonth}>
+                <SelectTrigger className="w-48">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableMonths.map(m => (
+                    <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b">
                   <th className="text-left py-2 px-3 font-semibold text-gray-700">Cliente</th>
                   <th className="text-left py-2 px-3 font-semibold text-gray-700">Fecha Esperada</th>
+                  <th className="text-left py-2 px-3 font-semibold text-gray-700">Fecha Pago</th>
                   <th className="text-right py-2 px-3 font-semibold text-gray-700">Monto Esperado</th>
                   <th className="text-right py-2 px-3 font-semibold text-gray-700">Monto Pagado</th>
                   <th className="text-center py-2 px-3 font-semibold text-gray-700">Estado</th>
@@ -734,8 +861,8 @@ export default function PaymentsCalendarPage({ params }: { params: { id: string 
               <tbody>
                 {monthlyPaymentSummary.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="text-center py-4 text-gray-500">
-                      No hay clientes activos con pagos programados este mes
+                    <td colSpan={7} className="text-center py-4 text-gray-500">
+                      No hay pagos registrados para el periodo seleccionado
                     </td>
                   </tr>
                 ) : (
@@ -743,7 +870,10 @@ export default function PaymentsCalendarPage({ params }: { params: { id: string 
                     <tr key={idx} className="border-b hover:bg-gray-50">
                       <td className="py-2 px-3 font-medium">{item.clientName}</td>
                       <td className="py-2 px-3 text-gray-600">
-                        {new Date(item.expectedDate).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
+                        {new Date(item.expectedDate).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </td>
+                      <td className="py-2 px-3 text-gray-600">
+                        {item.paidDate ? new Date(item.paidDate).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}
                       </td>
                       <td className="py-2 px-3 text-right font-semibold">{formatMXN(item.expectedAmount)}</td>
                       <td className={`py-2 px-3 text-right ${item.isPaid ? 'font-semibold text-green-600' : 'text-gray-400'}`}>
@@ -755,12 +885,12 @@ export default function PaymentsCalendarPage({ params }: { params: { id: string 
                             {item.isOnTime ? 'A tiempo' : `${item.daysDelay} días retraso`}
                           </Badge>
                         ) : (
-                          <Badge className="bg-gray-100 text-gray-600 border-gray-300">Pendiente</Badge>
+                          <Badge className="bg-yellow-100 text-yellow-600 border-yellow-300">Pendiente</Badge>
                         )}
                       </td>
                       <td className="py-2 px-3 text-center">
                         {item.isPaid ? (
-                          <Badge className={item.isComplete ? 'bg-green-100 text-green-700 border-green-300' : 'bg-yellow-100 text-yellow-700 border-yellow-300'}>
+                          <Badge className={item.isComplete ? 'bg-green-100 text-green-700 border-green-300' : 'bg-orange-100 text-orange-700 border-orange-300'}>
                             {item.isComplete ? 'Completo' : 'Parcial'}
                           </Badge>
                         ) : (
@@ -771,6 +901,18 @@ export default function PaymentsCalendarPage({ params }: { params: { id: string 
                   ))
                 )}
               </tbody>
+              {monthlyPaymentSummary.length > 0 && (
+                <tfoot>
+                  <tr className="border-t-2 border-gray-300 font-bold">
+                    <td colSpan={3} className="py-2 px-3">Total</td>
+                    <td className="py-2 px-3 text-right">{formatMXN(monthlyPaymentSummary.reduce((sum, item) => sum + item.expectedAmount, 0))}</td>
+                    <td className="py-2 px-3 text-right text-green-600">{formatMXN(monthlyPaymentSummary.reduce((sum, item) => sum + item.paidAmount, 0))}</td>
+                    <td colSpan={2} className="py-2 px-3 text-center text-sm text-gray-600">
+                      {monthlyPaymentSummary.filter(i => i.isPaid).length} de {monthlyPaymentSummary.length} pagados
+                    </td>
+                  </tr>
+                </tfoot>
+              )}
             </table>
           </div>
         </div>

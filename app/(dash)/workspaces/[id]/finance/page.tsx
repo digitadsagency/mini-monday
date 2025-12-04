@@ -586,11 +586,10 @@ export default function FinancePage({ params }: { params: { id: string } }) {
       }
     })
     
-    // Ordenar meses (más recientes primero) y filtrar solo los que tienen gastos o están en el rango
+    // Ordenar meses de más antiguos a más recientes (2025 → 2026)
     const sortedMonths = Array.from(expensesMap.keys())
       .filter(monthKey => monthsInRange.includes(monthKey))
-      .sort()
-      .reverse()
+      .sort() // Ordenar ascendente (más antiguos primero)
     
     return sortedMonths.map(monthKey => {
       const monthExpenses = expensesMap.get(monthKey) || []
