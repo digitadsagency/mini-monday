@@ -29,6 +29,7 @@ export default function PaymentsCalendarPage({ params }: { params: { id: string 
   const [editingPayment, setEditingPayment] = useState<any | null>(null)
   const [expandedDays, setExpandedDays] = useState<Set<number>>(new Set()) // Para expandir/contraer días con muchos pagos
   const [summaryFilterMonth, setSummaryFilterMonth] = useState<string>('current') // 'current', 'all', o YYYY-MM
+  const [summaryFilterStatus, setSummaryFilterStatus] = useState<string>('all') // 'all', 'pending', 'paid', 'partial'
   const isAdmin = useMemo(() => {
     const name = (user?.name || '').toLowerCase()
     return name === 'miguel' || name === 'raul'
@@ -299,6 +300,18 @@ export default function PaymentsCalendarPage({ params }: { params: { id: string 
     // Ordenar por fecha (de más antigua a más reciente)
     return summary.sort((a, b) => new Date(a.expectedDate).getTime() - new Date(b.expectedDate).getTime())
   }, [billings, projects, allPaymentRecords, selectedDate, summaryFilterMonth])
+
+  // Filtrar por estado de pago
+  const filteredPaymentSummary = useMemo(() => {
+    if (summaryFilterStatus === 'all') return monthlyPaymentSummary
+    
+    return monthlyPaymentSummary.filter(item => {
+      if (summaryFilterStatus === 'pending') return !item.isPaid
+      if (summaryFilterStatus === 'paid') return item.isPaid && item.isComplete
+      if (summaryFilterStatus === 'partial') return item.isPaid && !item.isComplete
+      return true
+    })
+  }, [monthlyPaymentSummary, summaryFilterStatus])
 
   // Ahora sí, los returns condicionales DESPUÉS de todos los hooks
   if (authLoading || loading) {
@@ -829,20 +842,36 @@ export default function PaymentsCalendarPage({ params }: { params: { id: string 
 
         {/* Tabla de resumen de pagos del mes */}
         <div className="bg-white rounded-lg shadow-sm border p-6 mt-6">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
             <h3 className="text-lg font-semibold text-gray-900">Resumen de Pagos</h3>
-            <div className="flex items-center gap-2">
-              <label className="text-sm text-gray-600">Filtrar por:</label>
-              <Select value={summaryFilterMonth} onValueChange={setSummaryFilterMonth}>
-                <SelectTrigger className="w-48">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableMonths.map(m => (
-                    <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="flex items-center gap-4 flex-wrap">
+              <div className="flex items-center gap-2">
+                <label className="text-sm text-gray-600">Mes:</label>
+                <Select value={summaryFilterMonth} onValueChange={setSummaryFilterMonth}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableMonths.map(m => (
+                      <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-sm text-gray-600">Estado:</label>
+                <Select value={summaryFilterStatus} onValueChange={setSummaryFilterStatus}>
+                  <SelectTrigger className="w-36">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    <SelectItem value="pending">Por pagar</SelectItem>
+                    <SelectItem value="paid">Pagado</SelectItem>
+                    <SelectItem value="partial">Parcial</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
           <div className="overflow-x-auto">
@@ -859,14 +888,14 @@ export default function PaymentsCalendarPage({ params }: { params: { id: string 
                 </tr>
               </thead>
               <tbody>
-                {monthlyPaymentSummary.length === 0 ? (
+                {filteredPaymentSummary.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="text-center py-4 text-gray-500">
-                      No hay pagos registrados para el periodo seleccionado
+                      No hay pagos que coincidan con los filtros seleccionados
                     </td>
                   </tr>
                 ) : (
-                  monthlyPaymentSummary.map((item, idx) => (
+                  filteredPaymentSummary.map((item, idx) => (
                     <tr key={idx} className="border-b hover:bg-gray-50">
                       <td className="py-2 px-3 font-medium">{item.clientName}</td>
                       <td className="py-2 px-3 text-gray-600">
@@ -901,14 +930,16 @@ export default function PaymentsCalendarPage({ params }: { params: { id: string 
                   ))
                 )}
               </tbody>
-              {monthlyPaymentSummary.length > 0 && (
+              {filteredPaymentSummary.length > 0 && (
                 <tfoot>
                   <tr className="border-t-2 border-gray-300 font-bold">
-                    <td colSpan={3} className="py-2 px-3">Total</td>
-                    <td className="py-2 px-3 text-right">{formatMXN(monthlyPaymentSummary.reduce((sum, item) => sum + item.expectedAmount, 0))}</td>
-                    <td className="py-2 px-3 text-right text-green-600">{formatMXN(monthlyPaymentSummary.reduce((sum, item) => sum + item.paidAmount, 0))}</td>
+                    <td colSpan={3} className="py-2 px-3">
+                      Total {summaryFilterStatus !== 'all' && `(${summaryFilterStatus === 'pending' ? 'Por pagar' : summaryFilterStatus === 'paid' ? 'Pagados' : 'Parciales'})`}
+                    </td>
+                    <td className="py-2 px-3 text-right">{formatMXN(filteredPaymentSummary.reduce((sum, item) => sum + item.expectedAmount, 0))}</td>
+                    <td className="py-2 px-3 text-right text-green-600">{formatMXN(filteredPaymentSummary.reduce((sum, item) => sum + item.paidAmount, 0))}</td>
                     <td colSpan={2} className="py-2 px-3 text-center text-sm text-gray-600">
-                      {monthlyPaymentSummary.filter(i => i.isPaid).length} de {monthlyPaymentSummary.length} pagados
+                      {filteredPaymentSummary.filter(i => i.isPaid).length} de {filteredPaymentSummary.length} pagados
                     </td>
                   </tr>
                 </tfoot>
