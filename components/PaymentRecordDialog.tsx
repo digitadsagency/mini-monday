@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Search, Check } from 'lucide-react'
 
 interface PaymentRecordDialogProps {
   open: boolean
@@ -44,6 +44,7 @@ export function PaymentRecordDialog({
     notes: ''
   })
   const [submitting, setSubmitting] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
 
   // Actualizar el formulario cuando cambia defaultDate o defaultBillingId, o cuando se abre el diálogo
   useEffect(() => {
@@ -70,6 +71,25 @@ export function PaymentRecordDialog({
 
   const selectedBilling = billings.find(b => b.id === formData.billing_id)
   const selectedProject = projects.find(p => p.id === selectedBilling?.project_id)
+
+  // Filtrar billings por búsqueda
+  const filteredBillings = useMemo(() => {
+    if (!searchQuery.trim()) return billings
+    
+    const query = searchQuery.toLowerCase().trim()
+    return billings.filter(billing => {
+      const project = projects.find(p => p.id === billing.project_id)
+      const projectName = (project?.name || '').toLowerCase()
+      return projectName.includes(query)
+    })
+  }, [billings, projects, searchQuery])
+
+  // Limpiar búsqueda cuando se abre el diálogo
+  useEffect(() => {
+    if (open) {
+      setSearchQuery('')
+    }
+  }, [open])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -112,27 +132,55 @@ export function PaymentRecordDialog({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label htmlFor="billing_id">Cliente</Label>
-            <Select
-              value={formData.billing_id}
-              onValueChange={(value) => setFormData({ ...formData, billing_id: value })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecciona un cliente" />
-              </SelectTrigger>
-              <SelectContent>
-                {billings.map((billing) => {
+            {/* Buscador de clientes */}
+            <div className="relative mb-2">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                type="text"
+                placeholder="Buscar cliente..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            {/* Lista de clientes filtrados */}
+            <div className="max-h-48 overflow-y-auto border rounded-lg divide-y">
+              {filteredBillings.length === 0 ? (
+                <div className="p-3 text-center text-sm text-gray-500">
+                  No se encontraron clientes
+                </div>
+              ) : (
+                filteredBillings.map((billing) => {
                   const project = projects.find(p => p.id === billing.project_id)
+                  const isSelected = formData.billing_id === billing.id
                   return (
-                    <SelectItem key={billing.id} value={billing.id}>
-                      {project?.name || 'Cliente'} - {billing.monthly_amount.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })}
-                    </SelectItem>
+                    <button
+                      key={billing.id}
+                      type="button"
+                      onClick={() => setFormData({ ...formData, billing_id: billing.id })}
+                      className={`w-full text-left p-3 hover:bg-gray-50 transition-colors flex items-center justify-between ${
+                        isSelected ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
+                      }`}
+                    >
+                      <div>
+                        <div className={`font-medium ${isSelected ? 'text-blue-700' : 'text-gray-900'}`}>
+                          {project?.name || 'Cliente'}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {billing.monthly_amount.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })} • Día {billing.payment_day}
+                        </div>
+                      </div>
+                      {isSelected && (
+                        <Check className="h-5 w-5 text-blue-600 flex-shrink-0" />
+                      )}
+                    </button>
                   )
-                })}
-              </SelectContent>
-            </Select>
+                })
+              )}
+            </div>
             {selectedBilling && (
-              <p className="text-xs text-gray-500 mt-1">
-                Día de pago esperado: {selectedBilling.payment_day} de cada mes
+              <p className="text-xs text-green-600 mt-1 font-medium">
+                ✓ Seleccionado: {selectedProject?.name} - Día de pago: {selectedBilling.payment_day}
               </p>
             )}
           </div>

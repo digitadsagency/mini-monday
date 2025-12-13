@@ -86,17 +86,18 @@ export function Sidebar({ workspaceId }: SidebarProps) {
       icon: FolderOpen,
       label: 'Clientes',
       path: `/workspaces/${workspaceId}/clients`
-    },
-    {
-      icon: Users,
-      label: 'Miembros',
-      path: `#`
-    },
-    {
-      icon: Settings,
-      label: 'Configuración',
-      path: `#`
     }
+    // Miembros y Configuración están ocultos temporalmente hasta que estén conectados
+    // {
+    //   icon: Users,
+    //   label: 'Miembros',
+    //   path: `#`
+    // },
+    // {
+    //   icon: Settings,
+    //   label: 'Configuración',
+    //   path: `#`
+    // }
   ]
 
   const handleLogout = () => {
