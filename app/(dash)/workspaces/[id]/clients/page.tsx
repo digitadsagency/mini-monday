@@ -355,12 +355,6 @@ export default function AllClientsPage({ params }: { params: { id: string } }) {
                 className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="name">Nombre (A-Z)</option>
-                <option value="highest_payment">Mayor pago mensual</option>
-                <option value="lowest_payment">Menor pago mensual</option>
-                   <option value="most_delayed">Más retraso promedio en pagos</option>
-                   <option value="least_delayed">Menos retraso promedio en pagos</option>
-                   <option value="most_total_delay">Más días de retraso acumulado</option>
-                   <option value="most_punctual">Más puntual (pagos a tiempo)</option>
                 <option value="most_videos">Más videos al mes</option>
                 <option value="most_designs">Más diseños al mes</option>
                 <option value="most_photos">Más fotos al mes</option>
@@ -566,17 +560,7 @@ export default function AllClientsPage({ params }: { params: { id: string } }) {
                     return null
                   })()}
 
-                  {/* Financial Info */}
-                  {clientBilling && (
-                    <div className="mb-4 pt-4 border-t border-gray-200">
-                      <div className="flex items-center justify-between text-sm mb-2">
-                        <span className="text-gray-600">Pago mensual</span>
-                        <span className="font-semibold text-green-600">
-                          {clientBilling.monthly_amount.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })}
-                        </span>
-                      </div>
-                    </div>
-                  )}
+                  {/* Financial Info - Oculto para todos los usuarios */}
 
                   {/* Stats */}
                   <div className="space-y-3">
