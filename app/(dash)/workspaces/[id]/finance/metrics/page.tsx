@@ -5,7 +5,6 @@ import { useAuth } from '@/lib/useAuth'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { CorrectionFormDialog } from '@/components/CorrectionFormDialog'
 import { CorrectionRecord } from '@/lib/services/finance'
 
 function formatMXN(value: number) {
@@ -133,11 +132,6 @@ export default function FinanceMetricsPage({ params }: { params: { id: string } 
   }, [params.id])
 
   useEffect(() => { if (isAdmin) fetchCorrections() }, [isAdmin, fetchCorrections])
-
-  const handleCorrectionCreated = (correction: CorrectionRecord) => {
-    setCorrections(prev => [correction, ...prev])
-    fetchCorrections() // Refresh summary
-  }
 
   // Get project name helper
   const getProjectName = (projectId: string) => {
@@ -558,15 +552,9 @@ export default function FinanceMetricsPage({ params }: { params: { id: string } 
 
         {/* Correcciones por Cliente */}
         <section className="bg-white rounded-lg shadow-sm border p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">Correcciones por Cliente</h2>
-              <p className="text-sm text-gray-500">Tiempo invertido en correcciones y revisiones</p>
-            </div>
-            <CorrectionFormDialog 
-              workspaceId={params.id} 
-              onCorrectionCreated={handleCorrectionCreated}
-            />
+          <div className="mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">Correcciones por Cliente</h2>
+            <p className="text-sm text-gray-500">Tiempo invertido en correcciones y revisiones (registro disponible en Lista ClickUp)</p>
           </div>
           
           {loadingCorrections ? (

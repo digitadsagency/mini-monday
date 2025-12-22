@@ -28,6 +28,8 @@ import { useToast } from '@/lib/useToast'
 import { parseLocalDateFromYMD } from '@/lib/time'
 import { TaskFormDialog } from '@/components/TaskFormDialog'
 import { TaskEditDialog } from '@/components/TaskEditDialog'
+import { CorrectionFormDialog } from '@/components/CorrectionFormDialog'
+import { AlertCircle } from 'lucide-react'
 
 // Helper function to get user info from Google Sheets data
 const getUserInfo = (assigneeId: string | undefined, users: any[] = []) => {
@@ -60,6 +62,7 @@ export default function AllTasksClickUpView({ params }: { params: { id: string }
   const [showCompleted, setShowCompleted] = useState(true)
   const [updatingTask, setUpdatingTask] = useState<Record<string, boolean>>({})
   const [editingTask, setEditingTask] = useState<Task | null>(null)
+  const [correctionCount, setCorrectionCount] = useState(0)
   const { toasts, removeToast, success, error } = useToast()
 
   // Verificar si el usuario es admin (Miguel o Raúl)
@@ -185,6 +188,11 @@ export default function AllTasksClickUpView({ params }: { params: { id: string }
     )
     setEditingTask(null)
     success('Tarea actualizada', 'Los cambios se han guardado correctamente')
+  }
+
+  const handleCorrectionCreated = () => {
+    setCorrectionCount(prev => prev + 1)
+    success('Corrección registrada', 'La corrección se ha guardado correctamente')
   }
 
   const handleTaskStatusChange = async (taskId: string, newStatus: string) => {
@@ -407,6 +415,16 @@ export default function AllTasksClickUpView({ params }: { params: { id: string }
                   Calendario
                 </Button>
               </div>
+              <CorrectionFormDialog
+                workspaceId={params.id}
+                onCorrectionCreated={handleCorrectionCreated}
+                trigger={
+                  <Button variant="outline" className="border-orange-300 text-orange-700 hover:bg-orange-50">
+                    <AlertCircle className="h-4 w-4 mr-2" />
+                    Registrar Corrección
+                  </Button>
+                }
+              />
               <TaskFormDialog 
                 projectId={undefined} 
                 workspaceId={params.id}
