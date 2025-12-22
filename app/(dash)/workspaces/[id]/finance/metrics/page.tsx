@@ -5,6 +5,8 @@ import { useAuth } from '@/lib/useAuth'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { CorrectionFormDialog } from '@/components/CorrectionFormDialog'
+import { CorrectionRecord } from '@/lib/services/finance'
 
 function formatMXN(value: number) {
   return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(value || 0)
@@ -23,6 +25,10 @@ export default function FinanceMetricsPage({ params }: { params: { id: string } 
   const [loadingMetrics, setLoadingMetrics] = useState(false)
   const [monthlyUtilidad, setMonthlyUtilidad] = useState<any[]>([])
   const [loadingMonthly, setLoadingMonthly] = useState(false)
+  const [corrections, setCorrections] = useState<CorrectionRecord[]>([])
+  const [correctionsSummary, setCorrectionsSummary] = useState<any[]>([])
+  const [loadingCorrections, setLoadingCorrections] = useState(false)
+  const [projects, setProjects] = useState<any[]>([])
   const isAdmin = useMemo(() => {
     const name = (user?.name || '').toLowerCase()
     return name === 'miguel' || name === 'raul'
@@ -94,6 +100,62 @@ export default function FinanceMetricsPage({ params }: { params: { id: string } 
   }, [params.id])
 
   useEffect(() => { if (isAdmin) fetchMonthlyUtilidad() }, [isAdmin, fetchMonthlyUtilidad])
+
+  // Fetch corrections and projects
+  const fetchCorrections = useCallback(async () => {
+    setLoadingCorrections(true)
+    try {
+      const [correctionsRes, summaryRes, projectsRes] = await Promise.all([
+        fetch(`/api/corrections?workspaceId=${params.id}`, { cache: 'no-store' }),
+        fetch(`/api/corrections/summary?workspaceId=${params.id}`, { cache: 'no-store' }),
+        fetch(`/api/projects?workspaceId=${params.id}`, { cache: 'no-store' })
+      ])
+      
+      if (correctionsRes.ok) {
+        const data = await correctionsRes.json()
+        setCorrections(data)
+      }
+      
+      if (summaryRes.ok) {
+        const data = await summaryRes.json()
+        setCorrectionsSummary(data)
+      }
+      
+      if (projectsRes.ok) {
+        const data = await projectsRes.json()
+        setProjects(data)
+      }
+    } catch (e) {
+      console.error('Error fetching corrections:', e)
+    } finally {
+      setLoadingCorrections(false)
+    }
+  }, [params.id])
+
+  useEffect(() => { if (isAdmin) fetchCorrections() }, [isAdmin, fetchCorrections])
+
+  const handleCorrectionCreated = (correction: CorrectionRecord) => {
+    setCorrections(prev => [correction, ...prev])
+    fetchCorrections() // Refresh summary
+  }
+
+  // Get project name helper
+  const getProjectName = (projectId: string) => {
+    const project = projects.find(p => p.id === projectId)
+    return project?.name || 'Cliente desconocido'
+  }
+
+  // Get correction type label
+  const getCorrectionTypeLabel = (type: string) => {
+    const labels: Record<string, string> = {
+      video: '🎬 Video',
+      design: '🎨 Diseño',
+      photo: '📷 Foto',
+      copy: '✍️ Copy',
+      other: '📝 Otro'
+    }
+    return labels[type] || type
+  }
 
   if (!user || !isAdmin) return null
 
@@ -493,6 +555,162 @@ export default function FinanceMetricsPage({ params }: { params: { id: string } 
             </div>
           </section>
         )}
+
+        {/* Correcciones por Cliente */}
+        <section className="bg-white rounded-lg shadow-sm border p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Correcciones por Cliente</h2>
+              <p className="text-sm text-gray-500">Tiempo invertido en correcciones y revisiones</p>
+            </div>
+            <CorrectionFormDialog 
+              workspaceId={params.id} 
+              onCorrectionCreated={handleCorrectionCreated}
+            />
+          </div>
+          
+          {loadingCorrections ? (
+            <div className="text-sm text-gray-500">Cargando correcciones...</div>
+          ) : correctionsSummary.length > 0 ? (
+            <div className="space-y-4">
+              {/* Resumen Total */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div className="p-4 rounded-lg border-2 border-orange-200 bg-orange-50">
+                  <div className="text-sm text-gray-600 mb-1">Total Correcciones</div>
+                  <div className="text-2xl font-bold text-orange-700">
+                    {correctionsSummary.reduce((sum, c) => sum + c.total_corrections, 0)}
+                  </div>
+                </div>
+                <div className="p-4 rounded-lg border-2 border-red-200 bg-red-50">
+                  <div className="text-sm text-gray-600 mb-1">Horas en Correcciones</div>
+                  <div className="text-2xl font-bold text-red-700">
+                    {correctionsSummary.reduce((sum, c) => sum + c.total_hours, 0).toFixed(1)} h
+                  </div>
+                </div>
+                <div className="p-4 rounded-lg border-2 border-purple-200 bg-purple-50">
+                  <div className="text-sm text-gray-600 mb-1">Clientes con Correcciones</div>
+                  <div className="text-2xl font-bold text-purple-700">
+                    {correctionsSummary.length}
+                  </div>
+                </div>
+                <div className="p-4 rounded-lg border-2 border-yellow-200 bg-yellow-50">
+                  <div className="text-sm text-gray-600 mb-1">Promedio por Cliente</div>
+                  <div className="text-2xl font-bold text-yellow-700">
+                    {correctionsSummary.length > 0 
+                      ? (correctionsSummary.reduce((sum, c) => sum + c.total_hours, 0) / correctionsSummary.length).toFixed(1) 
+                      : 0} h
+                  </div>
+                </div>
+              </div>
+
+              {/* Tabla de correcciones por cliente */}
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-gray-600 border-b">
+                      <th className="py-3 pr-4 font-semibold">Cliente</th>
+                      <th className="py-3 pr-4 font-semibold text-center">Correcciones</th>
+                      <th className="py-3 pr-4 font-semibold text-center">Horas Totales</th>
+                      <th className="py-3 pr-4 font-semibold text-center">🎬 Video</th>
+                      <th className="py-3 pr-4 font-semibold text-center">🎨 Diseño</th>
+                      <th className="py-3 pr-4 font-semibold text-center">📷 Foto</th>
+                      <th className="py-3 pr-4 font-semibold text-center">✍️ Copy</th>
+                      <th className="py-3 pr-4 font-semibold text-center">📝 Otro</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {correctionsSummary.map((c: any) => (
+                      <tr key={c.project_id} className="border-b hover:bg-gray-50">
+                        <td className="py-3 pr-4 font-medium">{getProjectName(c.project_id)}</td>
+                        <td className="py-3 pr-4 text-center">
+                          <Badge className="bg-orange-100 text-orange-700 border-orange-300">
+                            {c.total_corrections}
+                          </Badge>
+                        </td>
+                        <td className="py-3 pr-4 text-center font-bold text-red-700">
+                          {c.total_hours.toFixed(1)} h
+                        </td>
+                        <td className="py-3 pr-4 text-center">
+                          {c.by_type.video > 0 ? `${c.by_type.video.toFixed(1)}h` : '-'}
+                        </td>
+                        <td className="py-3 pr-4 text-center">
+                          {c.by_type.design > 0 ? `${c.by_type.design.toFixed(1)}h` : '-'}
+                        </td>
+                        <td className="py-3 pr-4 text-center">
+                          {c.by_type.photo > 0 ? `${c.by_type.photo.toFixed(1)}h` : '-'}
+                        </td>
+                        <td className="py-3 pr-4 text-center">
+                          {c.by_type.copy > 0 ? `${c.by_type.copy.toFixed(1)}h` : '-'}
+                        </td>
+                        <td className="py-3 pr-4 text-center">
+                          {c.by_type.other > 0 ? `${c.by_type.other.toFixed(1)}h` : '-'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr className="border-t-2 border-gray-300 font-bold">
+                      <td className="py-3 pr-4">Total</td>
+                      <td className="py-3 pr-4 text-center">
+                        {correctionsSummary.reduce((sum, c) => sum + c.total_corrections, 0)}
+                      </td>
+                      <td className="py-3 pr-4 text-center text-red-700">
+                        {correctionsSummary.reduce((sum, c) => sum + c.total_hours, 0).toFixed(1)} h
+                      </td>
+                      <td className="py-3 pr-4 text-center">
+                        {correctionsSummary.reduce((sum, c) => sum + (c.by_type.video || 0), 0).toFixed(1)}h
+                      </td>
+                      <td className="py-3 pr-4 text-center">
+                        {correctionsSummary.reduce((sum, c) => sum + (c.by_type.design || 0), 0).toFixed(1)}h
+                      </td>
+                      <td className="py-3 pr-4 text-center">
+                        {correctionsSummary.reduce((sum, c) => sum + (c.by_type.photo || 0), 0).toFixed(1)}h
+                      </td>
+                      <td className="py-3 pr-4 text-center">
+                        {correctionsSummary.reduce((sum, c) => sum + (c.by_type.copy || 0), 0).toFixed(1)}h
+                      </td>
+                      <td className="py-3 pr-4 text-center">
+                        {correctionsSummary.reduce((sum, c) => sum + (c.by_type.other || 0), 0).toFixed(1)}h
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+
+              {/* Lista de correcciones recientes */}
+              {corrections.length > 0 && (
+                <div className="mt-6 pt-6 border-t">
+                  <h3 className="text-sm font-semibold text-gray-900 mb-3">Correcciones Recientes</h3>
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {corrections.slice(0, 10).map((c) => (
+                      <div key={c.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div className="flex items-center space-x-3">
+                          <span className="text-lg">{getCorrectionTypeLabel(c.correction_type).split(' ')[0]}</span>
+                          <div>
+                            <div className="font-medium text-gray-900">{getProjectName(c.project_id)}</div>
+                            <div className="text-xs text-gray-500">{c.description}</div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-bold text-red-700">{c.hours}h</div>
+                          <div className="text-xs text-gray-500">{new Date(c.date).toLocaleDateString('es-ES')}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <div className="text-gray-400 text-4xl mb-2">📝</div>
+              <div className="text-sm text-gray-500 mb-4">No hay correcciones registradas</div>
+              <p className="text-xs text-gray-400">
+                Registra correcciones para hacer seguimiento del tiempo invertido en revisiones por cliente
+              </p>
+            </div>
+          )}
+        </section>
 
         {/* Clientes */}
         <section className="bg-white rounded-lg shadow-sm border p-6">

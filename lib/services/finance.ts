@@ -79,6 +79,23 @@ export interface WorklogRecord {
   updated_at: string
 }
 
+export type CorrectionType = 'video' | 'design' | 'photo' | 'copy' | 'other'
+
+export interface CorrectionRecord {
+  id: string
+  workspace_id: string
+  project_id: string // Cliente
+  user_id?: string // Quién hizo la corrección (opcional)
+  correction_type: CorrectionType
+  hours: number // Tiempo de corrección
+  description: string // Descripción de la corrección
+  date: string // YYYY-MM-DD
+  task_id?: string // Tarea relacionada (opcional)
+  notes?: string
+  created_at: string
+  updated_at: string
+}
+
 export class FinanceService {
   private static async getSheet() {
     const sheets = await getSheetsClient()
@@ -902,6 +919,222 @@ export class FinanceService {
         }]
       }
     })
+  }
+
+  // CORRECTIONS - Registro de correcciones por cliente
+  static async listCorrections(workspaceId: string, month?: string): Promise<CorrectionRecord[]> {
+    const headers = ['id','workspace_id','project_id','user_id','correction_type','hours','description','date','task_id','notes','created_at','updated_at']
+    await this.ensureSheetExists('corrections', headers)
+    const { sheets, spreadsheetId } = await this.getSheet()
+    
+    const res = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: 'corrections!A2:L10000'
+    })
+    const rows = res.data.values || []
+    
+    let records = rows
+      .filter(r => r[1] === workspaceId)
+      .map(r => ({
+        id: r[0],
+        workspace_id: r[1],
+        project_id: r[2],
+        user_id: r[3] || undefined,
+        correction_type: (r[4] || 'other') as CorrectionType,
+        hours: parseFloat(r[5] || '0'),
+        description: r[6] || '',
+        date: r[7] || '',
+        task_id: r[8] || undefined,
+        notes: r[9] || undefined,
+        created_at: r[10],
+        updated_at: r[11]
+      }))
+    
+    // Filter by month if provided (YYYY-MM format)
+    if (month) {
+      records = records.filter(r => r.date.startsWith(month))
+    }
+    
+    return records
+  }
+
+  static async createCorrection(data: Omit<CorrectionRecord, 'id' | 'created_at' | 'updated_at'>): Promise<CorrectionRecord> {
+    const headers = ['id','workspace_id','project_id','user_id','correction_type','hours','description','date','task_id','notes','created_at','updated_at']
+    await this.ensureSheetExists('corrections', headers)
+    const { sheets, spreadsheetId } = await this.getSheet()
+    
+    const id = `corr-${Date.now()}`
+    const now = new Date().toISOString()
+    const row = [
+      id,
+      data.workspace_id,
+      data.project_id,
+      data.user_id || '',
+      data.correction_type,
+      data.hours,
+      data.description,
+      data.date,
+      data.task_id || '',
+      data.notes || '',
+      now,
+      now
+    ]
+    
+    await sheets.spreadsheets.values.append({
+      spreadsheetId,
+      range: 'corrections!A:L',
+      valueInputOption: 'RAW',
+      requestBody: { values: [row] }
+    })
+    
+    return { id, ...data, created_at: now, updated_at: now }
+  }
+
+  static async updateCorrection(id: string, data: Partial<Omit<CorrectionRecord, 'id' | 'created_at' | 'workspace_id'>>): Promise<CorrectionRecord> {
+    const headers = ['id','workspace_id','project_id','user_id','correction_type','hours','description','date','task_id','notes','created_at','updated_at']
+    await this.ensureSheetExists('corrections', headers)
+    const { sheets, spreadsheetId } = await this.getSheet()
+    
+    const res = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: 'corrections!A2:L10000'
+    })
+    const rows = res.data.values || []
+    const rowIndex = rows.findIndex(r => r[0] === id)
+    
+    if (rowIndex === -1) {
+      throw new Error('Correction not found')
+    }
+    
+    const existingRow = rows[rowIndex]
+    const existingRecord: CorrectionRecord = {
+      id: existingRow[0],
+      workspace_id: existingRow[1],
+      project_id: existingRow[2],
+      user_id: existingRow[3] || undefined,
+      correction_type: (existingRow[4] || 'other') as CorrectionType,
+      hours: parseFloat(existingRow[5] || '0'),
+      description: existingRow[6] || '',
+      date: existingRow[7] || '',
+      task_id: existingRow[8] || undefined,
+      notes: existingRow[9] || undefined,
+      created_at: existingRow[10],
+      updated_at: existingRow[11]
+    }
+    
+    const now = new Date().toISOString()
+    const updatedData: CorrectionRecord = {
+      ...existingRecord,
+      project_id: data.project_id ?? existingRecord.project_id,
+      user_id: data.user_id ?? existingRecord.user_id,
+      correction_type: data.correction_type ?? existingRecord.correction_type,
+      hours: data.hours ?? existingRecord.hours,
+      description: data.description ?? existingRecord.description,
+      date: data.date ?? existingRecord.date,
+      task_id: data.task_id ?? existingRecord.task_id,
+      notes: data.notes ?? existingRecord.notes,
+      updated_at: now
+    }
+    
+    const updatedRow = [
+      updatedData.id,
+      updatedData.workspace_id,
+      updatedData.project_id,
+      updatedData.user_id || '',
+      updatedData.correction_type,
+      updatedData.hours,
+      updatedData.description,
+      updatedData.date,
+      updatedData.task_id || '',
+      updatedData.notes || '',
+      updatedData.created_at,
+      now
+    ]
+    
+    await sheets.spreadsheets.values.update({
+      spreadsheetId,
+      range: `corrections!A${rowIndex + 2}:L${rowIndex + 2}`,
+      valueInputOption: 'RAW',
+      requestBody: { values: [updatedRow] }
+    })
+    
+    return updatedData
+  }
+
+  static async deleteCorrection(id: string): Promise<void> {
+    const headers = ['id','workspace_id','project_id','user_id','correction_type','hours','description','date','task_id','notes','created_at','updated_at']
+    await this.ensureSheetExists('corrections', headers)
+    const { sheets, spreadsheetId } = await this.getSheet()
+    
+    const res = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: 'corrections!A2:L10000'
+    })
+    const rows = res.data.values || []
+    const rowIndex = rows.findIndex(r => r[0] === id)
+    
+    if (rowIndex === -1) {
+      throw new Error('Correction not found')
+    }
+    
+    await sheets.spreadsheets.batchUpdate({
+      spreadsheetId,
+      requestBody: {
+        requests: [{
+          deleteDimension: {
+            range: {
+              sheetId: await this.getSheetId('corrections'),
+              dimension: 'ROWS',
+              startIndex: rowIndex + 1,
+              endIndex: rowIndex + 2
+            }
+          }
+        }]
+      }
+    })
+  }
+
+  // Get corrections summary by client
+  static async getCorrectionsByClient(workspaceId: string, startMonth?: string, endMonth?: string): Promise<{
+    project_id: string
+    total_hours: number
+    total_corrections: number
+    by_type: Record<CorrectionType, number>
+  }[]> {
+    const corrections = await this.listCorrections(workspaceId)
+    
+    // Filter by date range if provided
+    let filtered = corrections
+    if (startMonth) {
+      filtered = filtered.filter(c => c.date >= startMonth)
+    }
+    if (endMonth) {
+      filtered = filtered.filter(c => c.date <= endMonth + '-31')
+    }
+    
+    // Group by project_id
+    const byClient: Record<string, {
+      project_id: string
+      total_hours: number
+      total_corrections: number
+      by_type: Record<CorrectionType, number>
+    }> = {}
+    
+    for (const c of filtered) {
+      if (!byClient[c.project_id]) {
+        byClient[c.project_id] = {
+          project_id: c.project_id,
+          total_hours: 0,
+          total_corrections: 0,
+          by_type: { video: 0, design: 0, photo: 0, copy: 0, other: 0 }
+        }
+      }
+      byClient[c.project_id].total_hours += c.hours
+      byClient[c.project_id].total_corrections += 1
+      byClient[c.project_id].by_type[c.correction_type] += c.hours
+    }
+    
+    return Object.values(byClient).sort((a, b) => b.total_hours - a.total_hours)
   }
 }
 
