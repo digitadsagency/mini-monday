@@ -10,11 +10,11 @@ import { z } from 'zod'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
 import { Task } from '@/lib/validation'
 
-// Schema for the edit form
+// Schema for the edit form - usar 'med' para coincidir con el sistema
 const TaskEditSchema = z.object({
   title: z.string().min(1, 'El título es requerido'),
   description: z.string().optional(),
-  priority: z.enum(['low', 'medium', 'high', 'urgent']).default('medium'),
+  priority: z.enum(['low', 'med', 'high', 'urgent']).default('med'),
   status: z.enum(['backlog', 'todo', 'inprogress', 'review', 'done']).default('todo'),
   assignee_id: z.string().optional(),
   due_date: z.string().optional(),
@@ -54,7 +54,7 @@ export function TaskEditDialog({
     defaultValues: {
       title: task.title || '',
       description: task.description_md || '',
-      priority: task.priority || 'medium',
+      priority: task.priority || 'med',
       status: task.status || 'todo',
       assignee_id: task.assignee_id || 'unassigned',
       due_date: task.due_date || '',
@@ -68,7 +68,7 @@ export function TaskEditDialog({
       reset({
         title: task.title || '',
         description: task.description_md || '',
-        priority: task.priority || 'medium',
+        priority: task.priority || 'med',
         status: task.status || 'todo',
         assignee_id: task.assignee_id || 'unassigned',
         due_date: task.due_date || '',
@@ -192,7 +192,7 @@ export function TaskEditDialog({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="low">Baja</SelectItem>
-                  <SelectItem value="medium">Media</SelectItem>
+                  <SelectItem value="med">Media</SelectItem>
                   <SelectItem value="high">Alta</SelectItem>
                   <SelectItem value="urgent">Urgente</SelectItem>
                 </SelectContent>
