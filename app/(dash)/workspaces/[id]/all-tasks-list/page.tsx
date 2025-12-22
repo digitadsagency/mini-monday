@@ -18,7 +18,8 @@ import {
   Plus,
   MoreHorizontal,
   Eye,
-  EyeOff
+  EyeOff,
+  Edit2
 } from 'lucide-react'
 import { useAuth } from '@/lib/useAuth'
 import { Task } from '@/lib/validation'
@@ -26,6 +27,7 @@ import { ToastContainer } from '@/components/Toast'
 import { useToast } from '@/lib/useToast'
 import { parseLocalDateFromYMD } from '@/lib/time'
 import { TaskFormDialog } from '@/components/TaskFormDialog'
+import { TaskEditDialog } from '@/components/TaskEditDialog'
 
 // Helper function to get user info from Google Sheets data
 const getUserInfo = (assigneeId: string | undefined, users: any[] = []) => {
@@ -57,6 +59,7 @@ export default function AllTasksClickUpView({ params }: { params: { id: string }
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
   const [showCompleted, setShowCompleted] = useState(true)
   const [updatingTask, setUpdatingTask] = useState<Record<string, boolean>>({})
+  const [editingTask, setEditingTask] = useState<Task | null>(null)
   const { toasts, removeToast, success, error } = useToast()
 
   // Verificar si el usuario es admin (Miguel o Raúl)
@@ -172,6 +175,16 @@ export default function AllTasksClickUpView({ params }: { params: { id: string }
   const handleTaskCreate = (newTask: Task) => {
     setTasks(prevTasks => [...prevTasks, newTask])
     success('Tarea creada', 'La nueva tarea se ha creado exitosamente')
+  }
+
+  const handleTaskEdited = (updatedTask: Task) => {
+    setTasks(prevTasks =>
+      prevTasks.map(task =>
+        task.id === updatedTask.id ? updatedTask : task
+      )
+    )
+    setEditingTask(null)
+    success('Tarea actualizada', 'Los cambios se han guardado correctamente')
   }
 
   const handleTaskStatusChange = async (taskId: string, newStatus: string) => {
@@ -556,6 +569,14 @@ export default function AllTasksClickUpView({ params }: { params: { id: string }
                                 {parseLocalDateFromYMD(task.due_date).toLocaleDateString('es-ES', { month: 'short', day: 'numeric' })}
                               </div>
                             )}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setEditingTask(task)}
+                              className="opacity-0 group-hover:opacity-100 transition-opacity h-7 w-7 p-0"
+                            >
+                              <Edit2 className="h-4 w-4 text-gray-500" />
+                            </Button>
                           </div>
                         </div>
                       </div>
@@ -612,6 +633,14 @@ export default function AllTasksClickUpView({ params }: { params: { id: string }
                                 {parseLocalDateFromYMD(task.due_date).toLocaleDateString('es-ES', { month: 'short', day: 'numeric' })}
                               </div>
                             )}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setEditingTask(task)}
+                              className="opacity-0 group-hover:opacity-100 transition-opacity h-7 w-7 p-0"
+                            >
+                              <Edit2 className="h-4 w-4 text-gray-500" />
+                            </Button>
                             {renderRevertButton(task)}
                           </div>
                         </div>
@@ -669,6 +698,14 @@ export default function AllTasksClickUpView({ params }: { params: { id: string }
                                 {parseLocalDateFromYMD(task.due_date).toLocaleDateString('es-ES', { month: 'short', day: 'numeric' })}
                               </div>
                             )}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setEditingTask(task)}
+                              className="opacity-0 group-hover:opacity-100 transition-opacity h-7 w-7 p-0"
+                            >
+                              <Edit2 className="h-4 w-4 text-gray-500" />
+                            </Button>
                             {renderRevertButton(task)}
                           </div>
                         </div>
@@ -726,6 +763,14 @@ export default function AllTasksClickUpView({ params }: { params: { id: string }
                                 {parseLocalDateFromYMD(task.due_date).toLocaleDateString('es-ES', { month: 'short', day: 'numeric' })}
                               </div>
                             )}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setEditingTask(task)}
+                              className="opacity-0 group-hover:opacity-100 transition-opacity h-7 w-7 p-0"
+                            >
+                              <Edit2 className="h-4 w-4 text-gray-500" />
+                            </Button>
                             {renderRevertButton(task)}
                           </div>
                         </div>
@@ -740,6 +785,18 @@ export default function AllTasksClickUpView({ params }: { params: { id: string }
       </main>
 
       <ToastContainer toasts={toasts} onClose={removeToast} />
+      
+      {/* Diálogo de edición de tareas */}
+      {editingTask && (
+        <TaskEditDialog
+          task={editingTask}
+          open={!!editingTask}
+          onOpenChange={(open) => !open && setEditingTask(null)}
+          onTaskUpdated={handleTaskEdited}
+          users={users}
+          clients={clients}
+        />
+      )}
     </div>
   )
 }

@@ -63,8 +63,11 @@ export default function WorkspaceDashboard({ params }: { params: { id: string } 
     const now = new Date()
     const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
     
+    // Solo contar clientes activos (no pausados ni completados)
+    const activeClients = clients.filter(client => client.status === 'active')
+    
     return {
-      totalClients: clients.length,
+      totalClients: activeClients.length,
       totalTasks: tasks.length,
       completedTasks: tasks.filter(task => task.status === 'done').length,
       overdueTasks: tasks.filter(task => {
@@ -77,7 +80,7 @@ export default function WorkspaceDashboard({ params }: { params: { id: string } 
         return dueDate >= now && dueDate <= weekFromNow
       }).length
     }
-  }, [clients.length, tasks])
+  }, [clients, tasks])
 
   const handleClientCreated = async (newClient: any) => {
     console.log('🔄 Client created, refreshing data...')
