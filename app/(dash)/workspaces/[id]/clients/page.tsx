@@ -341,6 +341,7 @@ export default function AllClientsPage({ params }: { params: { id: string } }) {
               >
                 <option value="all">Todos</option>
                 <option value="active">Activos</option>
+                <option value="por_sesion">Por Sesión</option>
                 <option value="paused">Pausados</option>
                 <option value="completed">Completados</option>
               </select>
@@ -416,12 +417,14 @@ export default function AllClientsPage({ params }: { params: { id: string } }) {
                           className={
                             client.status === 'active' 
                               ? 'bg-green-100 text-green-700 border-green-300' 
+                              : client.status === 'por_sesion'
+                              ? 'bg-purple-100 text-purple-700 border-purple-300'
                               : client.status === 'paused'
                               ? 'bg-yellow-100 text-yellow-700 border-yellow-300'
                               : 'bg-gray-100 text-gray-700 border-gray-300'
                           }
                         >
-                          {client.status === 'active' ? 'Activo' : client.status === 'paused' ? 'Pausado' : 'Completado'}
+                          {client.status === 'active' ? 'Activo' : client.status === 'por_sesion' ? 'Por Sesión' : client.status === 'paused' ? 'Pausado' : 'Completado'}
                         </Badge>
                       </div>
                       {client.description && (

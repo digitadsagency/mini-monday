@@ -16,7 +16,7 @@ export function ProjectEditModal({ isOpen, onClose, onProjectUpdated, project }:
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    status: 'active' as 'active' | 'paused' | 'completed',
+    status: 'active' as 'active' | 'por_sesion' | 'paused' | 'completed',
     // Audiovisual/Video
     monthly_reel_corto: 0,
     monthly_reel_largo: 0,
@@ -158,12 +158,13 @@ export function ProjectEditModal({ isOpen, onClose, onProjectUpdated, project }:
             </label>
             <select
               value={formData.status}
-              onChange={(e) => setFormData({ ...formData, status: e.target.value as 'active' | 'paused' | 'completed' })}
+              onChange={(e) => setFormData({ ...formData, status: e.target.value as 'active' | 'por_sesion' | 'paused' | 'completed' })}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="active">Activo</option>
-              <option value="paused">Pausado</option>
-              <option value="completed">Completado</option>
+              <option value="active">🔄 Activo (pago mensual)</option>
+              <option value="por_sesion">📅 Por Sesión (pago por proyecto)</option>
+              <option value="paused">⏸️ Pausado</option>
+              <option value="completed">✅ Completado</option>
             </select>
           </div>
 

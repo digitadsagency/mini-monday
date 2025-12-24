@@ -19,7 +19,8 @@ import {
   MoreHorizontal,
   Eye,
   EyeOff,
-  Edit2
+  Edit2,
+  Trash2
 } from 'lucide-react'
 import { useAuth } from '@/lib/useAuth'
 import { Task } from '@/lib/validation'
@@ -193,6 +194,28 @@ export default function AllTasksClickUpView({ params }: { params: { id: string }
   const handleCorrectionCreated = () => {
     setCorrectionCount(prev => prev + 1)
     success('Corrección registrada', 'La corrección se ha guardado correctamente')
+  }
+
+  const handleTaskDelete = async (taskId: string) => {
+    if (!confirm('¿Estás seguro de que quieres eliminar esta tarea? Esta acción no se puede deshacer.')) {
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/tasks/${taskId}`, {
+        method: 'DELETE',
+      })
+
+      if (response.ok) {
+        setTasks(prevTasks => prevTasks.filter(task => task.id !== taskId))
+        success('Tarea eliminada', 'La tarea se ha eliminado correctamente')
+      } else {
+        error('Error al eliminar', 'No se pudo eliminar la tarea')
+      }
+    } catch (err) {
+      console.error('Error deleting task:', err)
+      error('Error de conexión', 'No se pudo conectar con el servidor')
+    }
   }
 
   const handleTaskStatusChange = async (taskId: string, newStatus: string) => {
@@ -587,14 +610,28 @@ export default function AllTasksClickUpView({ params }: { params: { id: string }
                                 {parseLocalDateFromYMD(task.due_date).toLocaleDateString('es-ES', { month: 'short', day: 'numeric' })}
                               </div>
                             )}
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setEditingTask(task)}
-                              className="opacity-0 group-hover:opacity-100 transition-opacity h-7 w-7 p-0"
-                            >
-                              <Edit2 className="h-4 w-4 text-gray-500" />
-                            </Button>
+                            {isAdmin && (
+                              <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setEditingTask(task)}
+                                  className="h-7 w-7 p-0"
+                                  title="Editar tarea"
+                                >
+                                  <Edit2 className="h-4 w-4 text-gray-500" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleTaskDelete(task.id)}
+                                  className="h-7 w-7 p-0 hover:bg-red-50"
+                                  title="Eliminar tarea"
+                                >
+                                  <Trash2 className="h-4 w-4 text-red-500" />
+                                </Button>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -651,14 +688,28 @@ export default function AllTasksClickUpView({ params }: { params: { id: string }
                                 {parseLocalDateFromYMD(task.due_date).toLocaleDateString('es-ES', { month: 'short', day: 'numeric' })}
                               </div>
                             )}
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setEditingTask(task)}
-                              className="opacity-0 group-hover:opacity-100 transition-opacity h-7 w-7 p-0"
-                            >
-                              <Edit2 className="h-4 w-4 text-gray-500" />
-                            </Button>
+                            {isAdmin && (
+                              <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setEditingTask(task)}
+                                  className="h-7 w-7 p-0"
+                                  title="Editar tarea"
+                                >
+                                  <Edit2 className="h-4 w-4 text-gray-500" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleTaskDelete(task.id)}
+                                  className="h-7 w-7 p-0 hover:bg-red-50"
+                                  title="Eliminar tarea"
+                                >
+                                  <Trash2 className="h-4 w-4 text-red-500" />
+                                </Button>
+                              </div>
+                            )}
                             {renderRevertButton(task)}
                           </div>
                         </div>
@@ -716,14 +767,28 @@ export default function AllTasksClickUpView({ params }: { params: { id: string }
                                 {parseLocalDateFromYMD(task.due_date).toLocaleDateString('es-ES', { month: 'short', day: 'numeric' })}
                               </div>
                             )}
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setEditingTask(task)}
-                              className="opacity-0 group-hover:opacity-100 transition-opacity h-7 w-7 p-0"
-                            >
-                              <Edit2 className="h-4 w-4 text-gray-500" />
-                            </Button>
+                            {isAdmin && (
+                              <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setEditingTask(task)}
+                                  className="h-7 w-7 p-0"
+                                  title="Editar tarea"
+                                >
+                                  <Edit2 className="h-4 w-4 text-gray-500" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleTaskDelete(task.id)}
+                                  className="h-7 w-7 p-0 hover:bg-red-50"
+                                  title="Eliminar tarea"
+                                >
+                                  <Trash2 className="h-4 w-4 text-red-500" />
+                                </Button>
+                              </div>
+                            )}
                             {renderRevertButton(task)}
                           </div>
                         </div>
@@ -781,14 +846,28 @@ export default function AllTasksClickUpView({ params }: { params: { id: string }
                                 {parseLocalDateFromYMD(task.due_date).toLocaleDateString('es-ES', { month: 'short', day: 'numeric' })}
                               </div>
                             )}
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setEditingTask(task)}
-                              className="opacity-0 group-hover:opacity-100 transition-opacity h-7 w-7 p-0"
-                            >
-                              <Edit2 className="h-4 w-4 text-gray-500" />
-                            </Button>
+                            {isAdmin && (
+                              <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setEditingTask(task)}
+                                  className="h-7 w-7 p-0"
+                                  title="Editar tarea"
+                                >
+                                  <Edit2 className="h-4 w-4 text-gray-500" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleTaskDelete(task.id)}
+                                  className="h-7 w-7 p-0 hover:bg-red-50"
+                                  title="Eliminar tarea"
+                                >
+                                  <Trash2 className="h-4 w-4 text-red-500" />
+                                </Button>
+                              </div>
+                            )}
                             {renderRevertButton(task)}
                           </div>
                         </div>

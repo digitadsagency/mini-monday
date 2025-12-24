@@ -45,8 +45,8 @@ export function CorrectionFormDialog({ workspaceId, onCorrectionCreated, trigger
         
         if (clientsRes.ok) {
           const clientsData = await clientsRes.json()
-          // Solo clientes activos
-          setClients(clientsData.filter((c: any) => c.status === 'active'))
+          // Clientes activos y por sesión (no pausados ni completados)
+          setClients(clientsData.filter((c: any) => c.status === 'active' || c.status === 'por_sesion'))
         }
         
         if (usersRes.ok) {

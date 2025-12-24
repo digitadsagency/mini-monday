@@ -16,6 +16,7 @@ export function ClientCreationModal({ isOpen, onClose, onClientCreated, workspac
   const [formData, setFormData] = useState({
     name: '',
     description: '',
+    status: 'active' as 'active' | 'por_sesion',
     // Audiovisual/Video
     monthly_reel_corto: 0,
     monthly_reel_largo: 0,
@@ -47,7 +48,7 @@ export function ClientCreationModal({ isOpen, onClose, onClientCreated, workspac
           workspace_id: workspaceId || 'demo',
           name: formData.name,
           description: formData.description,
-          status: 'active',
+          status: formData.status,
           priority: 'medium',
           deadline: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
           // Audiovisual/Video
@@ -74,6 +75,7 @@ export function ClientCreationModal({ isOpen, onClose, onClientCreated, workspac
         setFormData({
           name: '',
           description: '',
+          status: 'active',
           monthly_reel_corto: 0,
           monthly_reel_largo: 0,
           monthly_reel: 0,
@@ -138,6 +140,25 @@ export function ClientCreationModal({ isOpen, onClose, onClientCreated, workspac
               placeholder="Ej: Empresa ABC, Restaurante XYZ"
               required
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Tipo de Cliente
+            </label>
+            <select
+              value={formData.status}
+              onChange={(e) => setFormData({ ...formData, status: e.target.value as 'active' | 'por_sesion' })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="active">🔄 Cliente Mensual (pago recurrente)</option>
+              <option value="por_sesion">📅 Por Sesión (pago por proyecto)</option>
+            </select>
+            <p className="text-xs text-gray-500 mt-1">
+              {formData.status === 'por_sesion' 
+                ? 'No se contará como cliente activo. Registra los ingresos en "Ingresos Variables".'
+                : 'Se incluirá en los conteos de clientes activos y facturación mensual.'}
+            </p>
           </div>
 
           <div>

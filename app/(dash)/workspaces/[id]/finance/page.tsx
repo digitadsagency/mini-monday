@@ -790,12 +790,14 @@ export default function FinancePage({ params }: { params: { id: string } }) {
                         className={
                           project?.status === 'active' 
                             ? 'bg-green-100 text-green-700 border-green-300' 
+                            : project?.status === 'por_sesion'
+                            ? 'bg-purple-100 text-purple-700 border-purple-300'
                             : project?.status === 'paused'
                             ? 'bg-yellow-100 text-yellow-700 border-yellow-300'
                             : 'bg-gray-100 text-gray-700 border-gray-300'
                         }
                       >
-                        {project?.status === 'active' ? 'Activo' : project?.status === 'paused' ? 'Pausado' : 'Completado'}
+                        {project?.status === 'active' ? 'Activo' : project?.status === 'por_sesion' ? 'Por Sesión' : project?.status === 'paused' ? 'Pausado' : 'Completado'}
                       </Badge>
                       <span className="text-gray-500"> · Paga día {b.payment_day}</span>
                     </div>
