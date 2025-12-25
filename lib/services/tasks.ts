@@ -38,7 +38,7 @@ export class TasksService {
       
       const response = await sheets.spreadsheets.values.get({
         spreadsheetId,
-        range: 'tasks!A2:J1000', // Skip header row
+        range: 'tasks!A2:K1000', // Skip header row, incluye hasta columna K
       })
 
       const rows = response.data.values || []
@@ -54,8 +54,9 @@ export class TasksService {
           priority: row[5] as Task['priority'],
           assignee_id: row[6],
           due_date: row[7],
-          created_at: row[8],
-          updated_at: row[9]
+          estimate_hours: row[8] ? parseFloat(row[8]) : undefined,
+          created_at: row[9],
+          updated_at: row[10]
         }))
     } catch (error) {
       console.error('Error fetching tasks:', error)
@@ -182,9 +183,8 @@ export class TasksService {
       // Update the row
       const updatedRow = [...rows[taskIndex]]
       if (updates.title) updatedRow[2] = updates.title
-      // Soportar tanto description como description_md
-      if (updates.description !== undefined) updatedRow[3] = updates.description
-      if ((updates as any).description_md !== undefined) updatedRow[3] = (updates as any).description_md
+      // Actualizar descripción
+      if (updates.description_md !== undefined) updatedRow[3] = updates.description_md
       if (updates.status) updatedRow[4] = updates.status
       if (updates.priority) updatedRow[5] = updates.priority
       if (updates.assignee_id !== undefined) updatedRow[6] = updates.assignee_id || ''

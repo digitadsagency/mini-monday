@@ -109,6 +109,7 @@ export async function POST(request: NextRequest) {
       project_id: body.project_id,
       title: body.title,
       description: body.description || '',
+      description_md: body.description_md || body.description || '', // Soportar ambos
       priority: body.priority || 'medium',
       assignee_id: body.assignee_id || 'user-1',
       due_date: body.due_date || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
