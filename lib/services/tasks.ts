@@ -4,7 +4,7 @@ export interface Task {
   id: string
   project_id: string
   title: string
-  description: string
+  description_md: string // Usando description_md para consistencia con el frontend
   status: 'backlog' | 'todo' | 'inprogress' | 'review' | 'done'
   priority: 'low' | 'medium' | 'high' | 'urgent'
   assignee_id: string
@@ -17,7 +17,8 @@ export interface Task {
 export interface CreateTaskData {
   project_id: string
   title: string
-  description: string
+  description?: string // Acepta description o description_md
+  description_md?: string
   priority: 'low' | 'medium' | 'high' | 'urgent'
   assignee_id?: string
   due_date?: string
@@ -48,7 +49,7 @@ export class TasksService {
           id: row[0],
           project_id: row[1],
           title: row[2],
-          description: row[3],
+          description_md: row[3] || '', // Usar description_md para consistencia
           status: row[4] as Task['status'],
           priority: row[5] as Task['priority'],
           assignee_id: row[6],
@@ -90,7 +91,7 @@ export class TasksService {
           id: row[0],
           project_id: row[1],
           title: row[2],
-          description: row[3],
+          description_md: row[3] || '', // Usar description_md para consistencia
           status: row[4] as Task['status'],
           priority: row[5] as Task['priority'],
           assignee_id: row[6],
@@ -112,11 +113,14 @@ export class TasksService {
       const taskId = `task-${Date.now()}`
       const now = new Date().toISOString()
       
+      // Usar description_md o description (para compatibilidad)
+      const descriptionValue = data.description_md || data.description || ''
+      
       const newTask = [
         taskId,
         data.project_id,
         data.title,
-        data.description,
+        descriptionValue,
         'todo',
         data.priority,
         data.assignee_id || 'user-1',
@@ -135,13 +139,13 @@ export class TasksService {
         }
       })
 
-      console.log('✅ Task created in Google Sheets:', taskId)
+      console.log('✅ Task created in Google Sheets:', taskId, 'description:', descriptionValue)
 
       return {
         id: taskId,
         project_id: data.project_id,
         title: data.title,
-        description: data.description,
+        description_md: descriptionValue,
         status: 'todo',
         priority: data.priority,
         assignee_id: data.assignee_id || 'user-1',
@@ -197,13 +201,13 @@ export class TasksService {
         }
       })
 
-      console.log('✅ Task updated in Google Sheets:', taskId)
+      console.log('✅ Task updated in Google Sheets:', taskId, 'description:', updatedRow[3])
 
       return {
         id: updatedRow[0],
         project_id: updatedRow[1],
         title: updatedRow[2],
-        description: updatedRow[3],
+        description_md: updatedRow[3] || '', // Usar description_md para consistencia
         status: updatedRow[4] as Task['status'],
         priority: updatedRow[5] as Task['priority'],
         assignee_id: updatedRow[6],
