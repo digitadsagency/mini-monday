@@ -17,6 +17,7 @@ export function ProjectEditModal({ isOpen, onClose, onProjectUpdated, project }:
     name: '',
     description: '',
     status: 'active' as 'active' | 'por_sesion' | 'paused' | 'completed',
+    delivery_day: '' as string | number, // Día de entrega mensual
     // Audiovisual/Video
     monthly_reel_corto: 0,
     monthly_reel_largo: 0,
@@ -41,6 +42,7 @@ export function ProjectEditModal({ isOpen, onClose, onProjectUpdated, project }:
         name: project.name || '',
         description: project.description || '',
         status: project.status || 'active',
+        delivery_day: project.delivery_day || '',
         monthly_reel_corto: project.monthly_reel_corto || 0,
         monthly_reel_largo: project.monthly_reel_largo || 0,
         monthly_reel: project.monthly_reel || 0,
@@ -72,6 +74,7 @@ export function ProjectEditModal({ isOpen, onClose, onProjectUpdated, project }:
           name: formData.name,
           description: formData.description,
           status: formData.status,
+          delivery_day: formData.delivery_day ? Number(formData.delivery_day) : undefined,
           priority: project.priority || 'medium',
           deadline: project.deadline || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
           // Audiovisual/Video
@@ -152,20 +155,36 @@ export function ProjectEditModal({ isOpen, onClose, onProjectUpdated, project }:
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Estado
-            </label>
-            <select
-              value={formData.status}
-              onChange={(e) => setFormData({ ...formData, status: e.target.value as 'active' | 'por_sesion' | 'paused' | 'completed' })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="active">🔄 Activo (pago mensual)</option>
-              <option value="por_sesion">📅 Por Sesión (pago por proyecto)</option>
-              <option value="paused">⏸️ Pausado</option>
-              <option value="completed">✅ Completado</option>
-            </select>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Estado
+              </label>
+              <select
+                value={formData.status}
+                onChange={(e) => setFormData({ ...formData, status: e.target.value as 'active' | 'por_sesion' | 'paused' | 'completed' })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="active">🔄 Activo (pago mensual)</option>
+                <option value="por_sesion">📅 Por Sesión (pago por proyecto)</option>
+                <option value="paused">⏸️ Pausado</option>
+                <option value="completed">✅ Completado</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                📦 Día de Entrega
+              </label>
+              <Input
+                type="number"
+                value={formData.delivery_day}
+                onChange={(e) => setFormData({ ...formData, delivery_day: e.target.value })}
+                placeholder="Ej: 15"
+                min="1"
+                max="31"
+              />
+              <p className="text-xs text-gray-500 mt-1">Día del mes para entregar contenido</p>
+            </div>
           </div>
 
           {/* Audiovisual/Video */}

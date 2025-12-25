@@ -5,9 +5,10 @@ export interface Project {
   workspace_id: string
   name: string
   description: string
-  status: 'active' | 'completed' | 'paused'
+  status: 'active' | 'completed' | 'paused' | 'por_sesion'
   priority: 'low' | 'medium' | 'high' | 'urgent'
   deadline: string
+  delivery_day?: number // Día del mes en que se entrega el contenido (1-31)
   // Campos antiguos (para compatibilidad)
   monthly_videos?: number
   monthly_photos?: number
@@ -33,6 +34,7 @@ export interface CreateProjectData {
   description: string
   priority: 'low' | 'medium' | 'high' | 'urgent'
   deadline: string
+  delivery_day?: number // Día del mes en que se entrega el contenido (1-31)
   // Campos antiguos (para compatibilidad)
   monthly_videos?: number
   monthly_photos?: number
@@ -64,7 +66,7 @@ export class ProjectsService {
       
       const response = await sheets.spreadsheets.values.get({
         spreadsheetId,
-        range: 'projects!A2:W1000', // Expandido para incluir sesiones de grabación
+        range: 'projects!A2:X1000', // Expandido para incluir delivery_day
       })
 
       const rows = response.data.values || []
@@ -95,6 +97,7 @@ export class ProjectsService {
           monthly_foto_elaborada: parseInt(row[20]) || 0,
           monthly_foto: parseInt(row[21]) || 0,
           monthly_recording_sessions: parseInt(row[22]) || 0,
+          delivery_day: parseInt(row[23]) || undefined, // Día de entrega mensual
           created_at: row[10] || new Date().toISOString(),
           updated_at: row[11] || new Date().toISOString()
         }))
@@ -136,12 +139,13 @@ export class ProjectsService {
         data.monthly_foto_simple || 0,
         data.monthly_foto_elaborada || 0,
         data.monthly_foto || 0,
-        data.monthly_recording_sessions || 0
+        data.monthly_recording_sessions || 0,
+        data.delivery_day || '' // Día de entrega mensual
       ]
 
       await sheets.spreadsheets.values.append({
         spreadsheetId,
-        range: 'projects!A:W',
+        range: 'projects!A:X',
         valueInputOption: 'RAW',
         requestBody: {
           values: [newProject]
@@ -158,6 +162,7 @@ export class ProjectsService {
         status: 'active',
         priority: data.priority,
         deadline: data.deadline,
+        delivery_day: data.delivery_day,
         // Campos antiguos (para compatibilidad)
         monthly_videos: data.monthly_videos || 0,
         monthly_photos: data.monthly_photos || 0,
@@ -187,10 +192,10 @@ export class ProjectsService {
     try {
       const { sheets, spreadsheetId } = await this.getSheet()
       
-      // Get all projects to find the row (hasta columna W para incluir todos los campos)
+      // Get all projects to find the row (hasta columna X para incluir delivery_day)
       const response = await sheets.spreadsheets.values.get({
         spreadsheetId,
-        range: 'projects!A2:W1000',
+        range: 'projects!A2:X1000',
       })
 
       const rows = response.data.values || []
@@ -204,8 +209,8 @@ export class ProjectsService {
       
       // Update the row - asegurar que tenga todas las columnas necesarias
       const updatedRow = [...rows[projectIndex]]
-      // Asegurar que el array tenga al menos 23 elementos (columnas A-W)
-      while (updatedRow.length < 23) {
+      // Asegurar que el array tenga al menos 24 elementos (columnas A-X)
+      while (updatedRow.length < 24) {
         updatedRow.push('')
       }
       
@@ -236,10 +241,11 @@ export class ProjectsService {
       if (updates.monthly_foto_elaborada !== undefined) updatedRow[20] = updates.monthly_foto_elaborada || 0
       if (updates.monthly_foto !== undefined) updatedRow[21] = updates.monthly_foto || 0
       if (updates.monthly_recording_sessions !== undefined) updatedRow[22] = updates.monthly_recording_sessions || 0
+      if (updates.delivery_day !== undefined) updatedRow[23] = updates.delivery_day || ''
 
       await sheets.spreadsheets.values.update({
         spreadsheetId,
-        range: `projects!A${rowNumber}:W${rowNumber}`,
+        range: `projects!A${rowNumber}:X${rowNumber}`,
         valueInputOption: 'RAW',
         requestBody: {
           values: [updatedRow]
@@ -256,6 +262,7 @@ export class ProjectsService {
         status: (updatedRow[4] || 'active') as Project['status'],
         priority: (updatedRow[5] || 'medium') as Project['priority'],
         deadline: updatedRow[6] || '',
+        delivery_day: parseInt(updatedRow[23]) || undefined,
         // Campos antiguos (para compatibilidad)
         monthly_videos: parseInt(updatedRow[7]) || 0,
         monthly_photos: parseInt(updatedRow[8]) || 0,

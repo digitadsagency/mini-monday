@@ -28,6 +28,7 @@ export default function WorkspaceCalendarPage({ params }: { params: { id: string
   const [tasks, setTasks] = useState<Task[]>([])
   const [allTasks, setAllTasks] = useState<Task[]>([]) // Almacenar todas las tareas
   const [users, setUsers] = useState<any[]>([])
+  const [projects, setProjects] = useState<any[]>([]) // Proyectos con fecha de entrega
   const [loading, setLoading] = useState(true)
   const [selectedDate, setSelectedDate] = useState<Date>(new Date())
   const { toasts, removeToast, success, error } = useToast()
@@ -74,6 +75,20 @@ export default function WorkspaceCalendarPage({ params }: { params: { id: string
           console.log('✅ Users loaded from Google Sheets:', usersData)
         } else {
           console.error('Error loading users:', usersResponse.statusText)
+        }
+
+        // Load projects (para entregas mensuales)
+        const projectsResponse = await fetch(`/api/projects?workspaceId=${params.id}`)
+        if (projectsResponse.ok) {
+          const projectsData = await projectsResponse.json()
+          // Solo proyectos activos con fecha de entrega
+          const activeWithDelivery = projectsData.filter((p: any) => 
+            (p.status === 'active' || p.status === 'por_sesion') && p.delivery_day
+          )
+          setProjects(activeWithDelivery)
+          console.log('✅ Projects with delivery dates:', activeWithDelivery)
+        } else {
+          console.error('Error loading projects:', projectsResponse.statusText)
         }
       } catch (error) {
         console.error('Error loading data:', error)
@@ -183,6 +198,18 @@ export default function WorkspaceCalendarPage({ params }: { params: { id: string
     return tasksByDate[dateStr] || []
   }
 
+  // Obtener entregas de clientes para una fecha
+  const getDeliveriesForDate = (date: Date) => {
+    const dayOfMonth = date.getDate()
+    const month = date.getMonth()
+    const currentMonth = selectedDate.getMonth()
+    
+    // Solo mostrar entregas del mes actual
+    if (month !== currentMonth) return []
+    
+    return projects.filter(p => p.delivery_day === dayOfMonth)
+  }
+
   const isToday = (date: Date) => {
     const today = new Date()
     return date.toDateString() === today.toDateString()
@@ -267,8 +294,10 @@ export default function WorkspaceCalendarPage({ params }: { params: { id: string
             <div className="grid grid-cols-7 gap-1">
               {calendarDays.map((date, index) => {
                 const dayTasks = getTasksForDate(date)
+                const dayDeliveries = getDeliveriesForDate(date)
                 const isCurrentMonthDay = isCurrentMonth(date)
                 const isTodayDate = isToday(date)
+                const hasDeliveries = dayDeliveries.length > 0
                 
                 return (
                   <div
@@ -277,6 +306,7 @@ export default function WorkspaceCalendarPage({ params }: { params: { id: string
                       min-h-[120px] p-2 border border-gray-200 rounded-lg
                       ${isCurrentMonthDay ? 'bg-white' : 'bg-gray-50'}
                       ${isTodayDate ? 'ring-2 ring-blue-500' : ''}
+                      ${hasDeliveries && isCurrentMonthDay ? 'border-orange-400 border-2' : ''}
                     `}
                   >
                     <div className="flex items-center justify-between mb-2">
@@ -287,15 +317,38 @@ export default function WorkspaceCalendarPage({ params }: { params: { id: string
                       `}>
                         {date.getDate()}
                       </span>
-                      {dayTasks.length > 0 && (
-                        <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
-                          {dayTasks.length}
-                        </span>
-                      )}
+                      <div className="flex items-center space-x-1">
+                        {hasDeliveries && (
+                          <span className="text-xs bg-orange-100 text-orange-700 px-1 py-0.5 rounded" title="Entregas">
+                            📦{dayDeliveries.length}
+                          </span>
+                        )}
+                        {dayTasks.length > 0 && (
+                          <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
+                            {dayTasks.length}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     
                     <div className="space-y-1">
-                      {dayTasks.slice(0, 3).map((task) => (
+                      {/* Entregas de clientes */}
+                      {dayDeliveries.map((project) => (
+                        <div
+                          key={project.id}
+                          className="p-1 rounded text-xs bg-orange-100 text-orange-800 border border-orange-300 cursor-pointer hover:bg-orange-200"
+                          onClick={() => router.push(`/workspaces/${params.id}/projects/${project.id}/clickup-list`)}
+                          title={`Entrega: ${project.name}`}
+                        >
+                          <div className="flex items-center space-x-1">
+                            <span>📦</span>
+                            <span className="truncate font-medium">{project.name}</span>
+                          </div>
+                        </div>
+                      ))}
+                      
+                      {/* Tareas */}
+                      {dayTasks.slice(0, hasDeliveries ? 2 : 3).map((task) => (
                         <div
                           key={task.id}
                           className={`
@@ -322,9 +375,9 @@ export default function WorkspaceCalendarPage({ params }: { params: { id: string
                           )}
                         </div>
                       ))}
-                      {dayTasks.length > 3 && (
+                      {dayTasks.length > (hasDeliveries ? 2 : 3) && (
                         <div className="text-xs text-gray-500 text-center">
-                          +{dayTasks.length - 3} más
+                          +{dayTasks.length - (hasDeliveries ? 2 : 3)} más
                         </div>
                       )}
                     </div>

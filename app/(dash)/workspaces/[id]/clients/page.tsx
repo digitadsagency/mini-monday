@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -37,6 +37,13 @@ export default function AllClientsPage({ params }: { params: { id: string } }) {
   const [showClientEdit, setShowClientEdit] = useState(false)
   const [selectedClient, setSelectedClient] = useState<any>(null)
   const { toasts, removeToast, success, error } = useToast()
+
+  // Verificar si el usuario es admin (Miguel o Raúl)
+  const isAdmin = useMemo(() => {
+    if (!user) return false
+    const name = (user.name || '').toLowerCase()
+    return name === 'miguel' || name === 'raul'
+  }, [user])
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -434,31 +441,35 @@ export default function AllClientsPage({ params }: { params: { id: string } }) {
                       )}
                     </div>
                     <div className="flex items-center space-x-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setSelectedClient(client)
-                          setShowClientEdit(true)
-                        }}
-                        className="h-8 w-8 p-0"
-                        title="Editar cliente"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleDeleteClient(client.id)
-                        }}
-                        className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
-                        title="Eliminar cliente"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      {isAdmin && (
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setSelectedClient(client)
+                              setShowClientEdit(true)
+                            }}
+                            className="h-8 w-8 p-0"
+                            title="Editar cliente"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleDeleteClient(client.id)
+                            }}
+                            className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                            title="Eliminar cliente"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </>
+                      )}
                       <FolderOpen 
                         className="h-5 w-5 text-gray-400 flex-shrink-0 cursor-pointer hover:text-blue-600"
                         onClick={() => router.push(`/workspaces/${params.id}/projects/${client.id}/clickup-list`)}
