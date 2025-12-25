@@ -207,7 +207,8 @@ export default function WorkspaceCalendarPage({ params }: { params: { id: string
     // Solo mostrar entregas del mes actual
     if (month !== currentMonth) return []
     
-    return projects.filter(p => p.delivery_day === dayOfMonth)
+    // Comparar como números para evitar problemas de tipo string vs number
+    return projects.filter(p => parseInt(String(p.delivery_day)) === dayOfMonth)
   }
 
   const isToday = (date: Date) => {

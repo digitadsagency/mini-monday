@@ -29,6 +29,7 @@ import { useToast } from '@/lib/useToast'
 import { parseLocalDateFromYMD } from '@/lib/time'
 import { TaskFormDialog } from '@/components/TaskFormDialog'
 import { TaskEditDialog } from '@/components/TaskEditDialog'
+import { TaskDetailDialog } from '@/components/TaskDetailDialog'
 import { CorrectionFormDialog } from '@/components/CorrectionFormDialog'
 import { AlertCircle } from 'lucide-react'
 
@@ -63,6 +64,7 @@ export default function AllTasksClickUpView({ params }: { params: { id: string }
   const [showCompleted, setShowCompleted] = useState(true)
   const [updatingTask, setUpdatingTask] = useState<Record<string, boolean>>({})
   const [editingTask, setEditingTask] = useState<Task | null>(null)
+  const [viewingTask, setViewingTask] = useState<Task | null>(null) // Para ver detalles
   const [correctionCount, setCorrectionCount] = useState(0)
   const { toasts, removeToast, success, error } = useToast()
 
@@ -590,8 +592,11 @@ export default function AllTasksClickUpView({ params }: { params: { id: string }
                             className="h-4 w-4 flex-shrink-0"
                           />
                           <div className="flex-1 min-w-0 flex items-center space-x-3">
-                            <div className="flex-1 min-w-0">
-                              <h4 className="text-sm font-medium text-gray-900">{task.title}</h4>
+                            <div 
+                              className="flex-1 min-w-0 cursor-pointer"
+                              onClick={() => setViewingTask(task)}
+                            >
+                              <h4 className="text-sm font-medium text-gray-900 hover:text-blue-600">{task.title}</h4>
                               {task.description_md && (
                                 <p className="text-xs text-gray-500 mt-1 line-clamp-2">{task.description_md}</p>
                               )}
@@ -668,8 +673,11 @@ export default function AllTasksClickUpView({ params }: { params: { id: string }
                             className="h-4 w-4 flex-shrink-0"
                           />
                           <div className="flex-1 min-w-0 flex items-center space-x-3">
-                            <div className="flex-1 min-w-0">
-                              <h4 className="text-sm font-medium text-gray-900">{task.title}</h4>
+                            <div 
+                              className="flex-1 min-w-0 cursor-pointer"
+                              onClick={() => setViewingTask(task)}
+                            >
+                              <h4 className="text-sm font-medium text-gray-900 hover:text-blue-600">{task.title}</h4>
                               {task.description_md && (
                                 <p className="text-xs text-gray-500 mt-1 line-clamp-2">{task.description_md}</p>
                               )}
@@ -747,8 +755,11 @@ export default function AllTasksClickUpView({ params }: { params: { id: string }
                             className="h-4 w-4 flex-shrink-0"
                           />
                           <div className="flex-1 min-w-0 flex items-center space-x-3">
-                            <div className="flex-1 min-w-0">
-                              <h4 className="text-sm font-medium text-gray-900">{task.title}</h4>
+                            <div 
+                              className="flex-1 min-w-0 cursor-pointer"
+                              onClick={() => setViewingTask(task)}
+                            >
+                              <h4 className="text-sm font-medium text-gray-900 hover:text-blue-600">{task.title}</h4>
                               {task.description_md && (
                                 <p className="text-xs text-gray-500 mt-1 line-clamp-2">{task.description_md}</p>
                               )}
@@ -826,8 +837,11 @@ export default function AllTasksClickUpView({ params }: { params: { id: string }
                             className="h-4 w-4 flex-shrink-0"
                           />
                           <div className="flex-1 min-w-0 flex items-center space-x-3">
-                            <div className="flex-1 min-w-0">
-                              <h4 className="text-sm font-medium text-gray-500 line-through">{task.title}</h4>
+                            <div 
+                              className="flex-1 min-w-0 cursor-pointer"
+                              onClick={() => setViewingTask(task)}
+                            >
+                              <h4 className="text-sm font-medium text-gray-500 line-through hover:text-blue-400">{task.title}</h4>
                               {task.description_md && (
                                 <p className="text-xs text-gray-400 mt-1 line-clamp-2 line-through">{task.description_md}</p>
                               )}
@@ -892,6 +906,17 @@ export default function AllTasksClickUpView({ params }: { params: { id: string }
           onTaskUpdated={handleTaskEdited}
           users={users}
           clients={clients}
+        />
+      )}
+
+      {/* Diálogo de detalles de tarea (para empleados) */}
+      {viewingTask && (
+        <TaskDetailDialog
+          task={viewingTask}
+          open={!!viewingTask}
+          onOpenChange={(open) => !open && setViewingTask(null)}
+          clientName={getClientName(viewingTask.project_id, clients)}
+          assigneeName={getUserInfo(viewingTask.assignee_id, users).name}
         />
       )}
     </div>

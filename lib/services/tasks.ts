@@ -163,7 +163,7 @@ export class TasksService {
       // Get all tasks to find the row
       const response = await sheets.spreadsheets.values.get({
         spreadsheetId,
-        range: 'tasks!A2:J1000',
+        range: 'tasks!A2:K1000',
       })
 
       const rows = response.data.values || []
@@ -178,16 +178,19 @@ export class TasksService {
       // Update the row
       const updatedRow = [...rows[taskIndex]]
       if (updates.title) updatedRow[2] = updates.title
-      if (updates.description) updatedRow[3] = updates.description
+      // Soportar tanto description como description_md
+      if (updates.description !== undefined) updatedRow[3] = updates.description
+      if ((updates as any).description_md !== undefined) updatedRow[3] = (updates as any).description_md
       if (updates.status) updatedRow[4] = updates.status
       if (updates.priority) updatedRow[5] = updates.priority
-      if (updates.assignee_id) updatedRow[6] = updates.assignee_id
+      if (updates.assignee_id !== undefined) updatedRow[6] = updates.assignee_id || ''
       if (updates.due_date) updatedRow[7] = updates.due_date
+      if (updates.estimate_hours !== undefined) updatedRow[8] = updates.estimate_hours || ''
       updatedRow[9] = new Date().toISOString() // updated_at
 
       await sheets.spreadsheets.values.update({
         spreadsheetId,
-        range: `tasks!A${rowNumber}:J${rowNumber}`,
+        range: `tasks!A${rowNumber}:K${rowNumber}`,
         valueInputOption: 'RAW',
         requestBody: {
           values: [updatedRow]
@@ -205,11 +208,45 @@ export class TasksService {
         priority: updatedRow[5] as Task['priority'],
         assignee_id: updatedRow[6],
         due_date: updatedRow[7],
-        created_at: updatedRow[8],
-        updated_at: updatedRow[9]
+        estimate_hours: updatedRow[8] ? parseFloat(updatedRow[8]) : undefined,
+        created_at: updatedRow[9],
+        updated_at: updatedRow[10]
       }
     } catch (error) {
       console.error('Error updating task:', error)
+      throw error
+    }
+  }
+
+  static async deleteTask(taskId: string): Promise<boolean> {
+    try {
+      const { sheets, spreadsheetId } = await this.getSheet()
+      
+      // Get all tasks to find the row
+      const response = await sheets.spreadsheets.values.get({
+        spreadsheetId,
+        range: 'tasks!A2:K1000',
+      })
+
+      const rows = response.data.values || []
+      const taskIndex = rows.findIndex(row => row[0] === taskId)
+      
+      if (taskIndex === -1) {
+        throw new Error('Task not found')
+      }
+
+      const rowNumber = taskIndex + 2 // +2 because we skip header and arrays are 0-indexed
+      
+      // Clear the row (delete by clearing)
+      await sheets.spreadsheets.values.clear({
+        spreadsheetId,
+        range: `tasks!A${rowNumber}:K${rowNumber}`,
+      })
+
+      console.log('✅ Task deleted from Google Sheets:', taskId)
+      return true
+    } catch (error) {
+      console.error('Error deleting task:', error)
       throw error
     }
   }

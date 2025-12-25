@@ -13,6 +13,7 @@ export async function PUT(
       status,
       priority,
       deadline,
+      delivery_day, // Día de entrega mensual
       // Campos antiguos (para compatibilidad)
       monthly_videos,
       monthly_photos,
@@ -43,6 +44,7 @@ export async function PUT(
       status,
       priority,
       deadline,
+      delivery_day, // Día de entrega mensual
       // Campos antiguos (para compatibilidad)
       monthly_videos,
       monthly_photos,
