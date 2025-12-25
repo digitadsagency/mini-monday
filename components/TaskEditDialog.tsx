@@ -10,15 +10,19 @@ import { z } from 'zod'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
 import { Task } from '@/lib/validation'
 
-// Schema for the edit form - usar 'med' para coincidir con el sistema
+// Schema for the edit form - acepta 'med' y 'medium' para compatibilidad
 const TaskEditSchema = z.object({
   title: z.string().min(1, 'El título es requerido'),
   description: z.string().optional(),
-  priority: z.enum(['low', 'med', 'high', 'urgent']).default('med'),
+  priority: z.enum(['low', 'med', 'medium', 'high', 'urgent']).default('med'),
   status: z.enum(['backlog', 'todo', 'inprogress', 'review', 'done']).default('todo'),
   assignee_id: z.string().optional(),
   due_date: z.string().optional(),
-  estimate_hours: z.number().positive('Las horas deben ser positivas').optional().nullable(),
+  estimate_hours: z.union([
+    z.number().positive('Las horas deben ser positivas'),
+    z.nan(),
+    z.undefined()
+  ]).optional().nullable(),
 })
 
 type TaskEditData = z.infer<typeof TaskEditSchema>
@@ -42,19 +46,26 @@ export function TaskEditDialog({
 }: TaskEditDialogProps) {
   const [loading, setLoading] = useState(false)
 
+  // Convertir prioridad 'medium' a 'med' para el formulario
+  const normalizedPriority = (p: string | undefined) => {
+    if (p === 'medium') return 'med'
+    return p || 'med'
+  }
+
   const {
     register,
     handleSubmit,
     reset,
     setValue,
     watch,
-    formState: { errors }
+    formState: { errors, isValid }
   } = useForm<TaskEditData>({
     resolver: zodResolver(TaskEditSchema),
+    mode: 'onChange', // Validar al cambiar
     defaultValues: {
       title: task.title || '',
       description: task.description_md || '',
-      priority: task.priority || 'med',
+      priority: normalizedPriority(task.priority) as any,
       status: task.status || 'todo',
       assignee_id: task.assignee_id || 'unassigned',
       due_date: task.due_date || '',
@@ -68,7 +79,7 @@ export function TaskEditDialog({
       reset({
         title: task.title || '',
         description: task.description_md || '',
-        priority: task.priority || 'med',
+        priority: normalizedPriority(task.priority) as any,
         status: task.status || 'todo',
         assignee_id: task.assignee_id || 'unassigned',
         due_date: task.due_date || '',
@@ -80,14 +91,24 @@ export function TaskEditDialog({
   const onSubmit = async (data: TaskEditData) => {
     setLoading(true)
     try {
+      // Convertir 'medium' a 'med' para consistencia con el backend
+      let priority = data.priority
+      if (priority === 'medium') priority = 'med'
+      
+      // Manejar estimate_hours vacío o NaN
+      let estimateHours = data.estimate_hours
+      if (estimateHours === null || estimateHours === undefined || Number.isNaN(estimateHours)) {
+        estimateHours = undefined
+      }
+      
       const requestData = {
         title: data.title.trim(),
         description_md: (data.description || '').trim(),
-        priority: data.priority,
+        priority: priority,
         status: data.status,
         assignee_id: data.assignee_id === 'unassigned' ? '' : (data.assignee_id || ''),
         due_date: data.due_date || '',
-        estimate_hours: data.estimate_hours || undefined
+        estimate_hours: estimateHours
       }
 
       const response = await fetch(`/api/tasks/${task.id}`, {
