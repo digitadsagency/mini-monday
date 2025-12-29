@@ -105,7 +105,11 @@ export function Sidebar({ workspaceId }: SidebarProps) {
     router.push('/sign-in')
   }
 
+  // Admin tiene acceso completo a finanzas (Miguel y Raúl)
   const isAdmin = (user?.name || '').toLowerCase() === 'miguel' || (user?.name || '').toLowerCase() === 'raul'
+  
+  // Supervisor puede ver todas las tareas pero NO finanzas (Ana Pau)
+  const isSupervisor = (user?.name || '').toLowerCase() === 'ana pau' || (user?.name || '').toLowerCase() === 'anapau' || (user?.name || '').toLowerCase() === 'ana_pau'
 
   return (
     <div className={cn(

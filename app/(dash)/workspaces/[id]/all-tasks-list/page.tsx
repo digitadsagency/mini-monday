@@ -68,11 +68,19 @@ export default function AllTasksClickUpView({ params }: { params: { id: string }
   const [correctionCount, setCorrectionCount] = useState(0)
   const { toasts, removeToast, success, error } = useToast()
 
-  // Verificar si el usuario es admin (Miguel o Raúl)
+  // Verificar si el usuario es admin (Miguel o Raúl) - acceso completo incluyendo editar/eliminar
   const isAdmin = useMemo(() => {
     if (!user) return false
     const name = (user.name || '').toLowerCase()
     return name === 'miguel' || name === 'raul'
+  }, [user])
+
+  // Verificar si puede ver todas las tareas (admins + supervisores como Ana Pau)
+  const canViewAllTasks = useMemo(() => {
+    if (!user) return false
+    const name = (user.name || '').toLowerCase()
+    // Admin o Supervisor (Ana Pau)
+    return name === 'miguel' || name === 'raul' || name === 'ana pau' || name === 'anapau' || name === 'ana_pau'
   }, [user])
 
   useEffect(() => {
@@ -94,8 +102,8 @@ export default function AllTasksClickUpView({ params }: { params: { id: string }
           setAllTasks(tasksData)
           
           // Filtrar tareas según el usuario
-          if (isAdmin) {
-            // Admin ve todas las tareas
+          if (canViewAllTasks) {
+            // Admin o Supervisor (Ana Pau) ve todas las tareas
             setTasks(tasksData)
           } else {
             // Usuario regular solo ve sus tareas asignadas
@@ -137,7 +145,7 @@ export default function AllTasksClickUpView({ params }: { params: { id: string }
     if (user) {
       loadData()
     }
-  }, [user, params.id, isAdmin])
+  }, [user, params.id, canViewAllTasks])
 
   if (authLoading || loading) {
     return (
@@ -425,7 +433,7 @@ export default function AllTasksClickUpView({ params }: { params: { id: string }
                   Lista de Tareas
                 </h1>
                 <p className="text-sm text-gray-600">
-                  {isAdmin ? 'Todas las tareas del workspace' : 'Tus tareas asignadas'}
+                  {canViewAllTasks ? 'Todas las tareas del workspace' : 'Tus tareas asignadas'}
                 </p>
               </div>
             </div>
