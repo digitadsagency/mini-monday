@@ -139,5 +139,44 @@ export const UsersService = {
       const userEmail = (user.email || '').toLowerCase().trim();
       return userEmail === searchEmail;
     });
+  },
+
+  async createUser(userData: { email: string; name: string; password: string; role?: string; avatar?: string }): Promise<User> {
+    const sheets = await getSheetsClient();
+    const spreadsheetId = getSpreadsheetId();
+
+    const userId = `user-${Date.now()}`;
+    const now = new Date().toISOString();
+
+    const newUser = [
+      userId,
+      userData.email.toLowerCase().trim(),
+      userData.name,
+      userData.role || 'member',
+      userData.avatar || '👤',
+      userData.password,
+      now
+    ];
+
+    await sheets.spreadsheets.values.append({
+      spreadsheetId,
+      range: `${USERS_SHEET_NAME}!A:G`,
+      valueInputOption: 'RAW',
+      requestBody: {
+        values: [newUser]
+      }
+    });
+
+    console.log('✅ User created in Google Sheets:', userId);
+
+    return {
+      id: userId,
+      email: userData.email.toLowerCase().trim(),
+      name: userData.name,
+      role: (userData.role || 'member') as 'owner' | 'admin' | 'member',
+      avatar: userData.avatar || '👤',
+      password: userData.password,
+      created_at: now
+    };
   }
 };
