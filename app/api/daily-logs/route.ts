@@ -56,22 +56,27 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // Check if user is admin by looking up the user in the users data
+    // Check if user is admin or supervisor by looking up the user in the users data
     const currentUser = users[userId]
     const isAdmin = currentUser && ['miguel', 'raul', 'alvaro'].includes(
       (currentUser.name || currentUser.username || '').toLowerCase()
     )
+    const isSupervisor = currentUser && currentUser.role === 'supervisor'
+    const canSeeAllLogs = isAdmin || isSupervisor
     
     console.log('🔍 User check:', {
       userId,
       currentUser,
       isAdmin,
-      userName: currentUser?.name || currentUser?.username
+      isSupervisor,
+      canSeeAllLogs,
+      userName: currentUser?.name || currentUser?.username,
+      role: currentUser?.role
     })
     
-    // Filter logs based on admin status
-    const filteredLogs = isAdmin 
-      ? logs // Admins see all logs
+    // Filter logs based on admin/supervisor status
+    const filteredLogs = canSeeAllLogs 
+      ? logs // Admins and supervisors see all logs
       : logs.filter(log => log.user_id === userId) // Regular users see only their logs
 
     // Add author information to each log
