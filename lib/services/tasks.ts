@@ -19,6 +19,7 @@ export interface CreateTaskData {
   title: string
   description?: string // Acepta description o description_md
   description_md?: string
+  status?: 'todo' | 'inprogress' | 'review' | 'done' | 'backlog'
   priority: 'low' | 'medium' | 'high' | 'urgent'
   assignee_id?: string
   due_date?: string
@@ -117,12 +118,14 @@ export class TasksService {
       // Usar description_md o description (para compatibilidad)
       const descriptionValue = data.description_md || data.description || ''
       
+      const taskStatus = data.status || 'todo'
+      
       const newTask = [
         taskId,
         data.project_id,
         data.title,
         descriptionValue,
-        'todo',
+        taskStatus,
         data.priority,
         data.assignee_id || 'user-1',
         data.due_date || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 7 days from now
@@ -147,7 +150,7 @@ export class TasksService {
         project_id: data.project_id,
         title: data.title,
         description_md: descriptionValue,
-        status: 'todo',
+        status: taskStatus,
         priority: data.priority,
         assignee_id: data.assignee_id || 'user-1',
         due_date: data.due_date || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],

@@ -59,7 +59,6 @@ export async function POST(request: NextRequest) {
     try {
       const correctionTypeName = getCorrectionTypeName(body.correction_type || 'other')
       await TasksService.createTask({
-        workspace_id: body.workspace_id,
         project_id: body.project_id,
         title: `🔧 Corrección: ${correctionTypeName}`,
         description_md: body.description + (body.notes ? `\n\nNotas: ${body.notes}` : ''),
@@ -67,8 +66,7 @@ export async function POST(request: NextRequest) {
         priority: 'medium',
         assignee_id: body.user_id || undefined,
         due_date: body.date,
-        estimate_hours: parseFloat(body.hours),
-        tags: ['corrección', correctionTypeName.toLowerCase()]
+        estimate_hours: parseFloat(body.hours)
       })
       console.log('✅ Tarea de corrección creada automáticamente')
     } catch (taskError) {
