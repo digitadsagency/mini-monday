@@ -402,16 +402,23 @@ export default function AllTasksClickUpView({ params }: { params: { id: string }
     return acc
   }, {} as Record<string, Task[]>)
 
-  // Calculate stats
+  // Calculate stats - contar todas las tareas no completadas como "Por Hacer" para el stat principal
+  const completedTasks = tasks.filter(t => t.status === 'done')
+  const inProgressTasks = tasks.filter(t => t.status === 'inprogress')
+  const reviewTasks = tasks.filter(t => t.status === 'review')
+  const todoTasks = tasks.filter(t => t.status === 'todo' || t.status === 'backlog')
+  const overdueTasks = tasks.filter(t => {
+    if (!t.due_date || t.status === 'done') return false
+    return parseLocalDateFromYMD(t.due_date) < new Date()
+  })
+  
   const stats = {
     total: tasks.length,
-    completed: tasks.filter(t => t.status === 'done').length,
-    inProgress: tasks.filter(t => t.status === 'inprogress').length,
-    todo: tasks.filter(t => t.status === 'todo').length,
-    overdue: tasks.filter(t => {
-      if (!t.due_date || t.status === 'done') return false
-      return parseLocalDateFromYMD(t.due_date) < new Date()
-    }).length
+    completed: completedTasks.length,
+    inProgress: inProgressTasks.length,
+    review: reviewTasks.length,
+    todo: todoTasks.length,
+    overdue: overdueTasks.length
   }
 
   return (

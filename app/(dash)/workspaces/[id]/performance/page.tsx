@@ -32,6 +32,7 @@ interface UserStats {
   totalTasks: number
   completedTasks: number
   inProgressTasks: number
+  reviewTasks: number
   todoTasks: number
   overdueTasks: number
   completionRate: number
@@ -44,6 +45,7 @@ interface TeamStats {
   totalTasks: number
   completedTasks: number
   inProgressTasks: number
+  reviewTasks: number
   todoTasks: number
   overdueTasks: number
   totalEstimatedHours: number
@@ -119,6 +121,7 @@ export default function PerformanceDashboard({ params }: { params: { id: string 
       const userTasks = tasks.filter(task => task.assignee_id === user.id)
       const completedTasks = userTasks.filter(task => task.status === 'done').length
       const inProgressTasks = userTasks.filter(task => task.status === 'inprogress').length
+      const reviewTasks = userTasks.filter(task => task.status === 'review').length
       const todoTasks = userTasks.filter(task => task.status === 'todo').length
       const overdueTasks = userTasks.filter(task => {
         if (!task.due_date || task.status === 'done') return false
@@ -147,6 +150,7 @@ export default function PerformanceDashboard({ params }: { params: { id: string 
         totalTasks: userTasks.length,
         completedTasks,
         inProgressTasks,
+        reviewTasks,
         todoTasks,
         overdueTasks,
         completionRate,
@@ -162,6 +166,7 @@ export default function PerformanceDashboard({ params }: { params: { id: string 
     const totalTasks = tasks.length
     const completedTasks = tasks.filter(task => task.status === 'done').length
     const inProgressTasks = tasks.filter(task => task.status === 'inprogress').length
+    const reviewTasks = tasks.filter(task => task.status === 'review').length
     const todoTasks = tasks.filter(task => task.status === 'todo').length
     const overdueTasks = tasks.filter(task => {
       if (!task.due_date || task.status === 'done') return false
@@ -190,6 +195,7 @@ export default function PerformanceDashboard({ params }: { params: { id: string 
       totalTasks,
       completedTasks,
       inProgressTasks,
+      reviewTasks,
       todoTasks,
       overdueTasks,
       totalEstimatedHours,
@@ -482,21 +488,28 @@ export default function PerformanceDashboard({ params }: { params: { id: string 
                       <div
                         className="bg-purple-500 transition-all duration-500"
                         style={{ width: `${(userStat.todoTasks / userStat.totalTasks) * 100}%` }}
-                        title={`READY: ${userStat.todoTasks}`}
+                        title={`Por hacer: ${userStat.todoTasks}`}
                       />
                     )}
                     {userStat.inProgressTasks > 0 && (
                       <div
                         className="bg-blue-500 transition-all duration-500"
                         style={{ width: `${(userStat.inProgressTasks / userStat.totalTasks) * 100}%` }}
-                        title={`IN PROGRESS: ${userStat.inProgressTasks}`}
+                        title={`En progreso: ${userStat.inProgressTasks}`}
+                      />
+                    )}
+                    {userStat.reviewTasks > 0 && (
+                      <div
+                        className="bg-yellow-500 transition-all duration-500"
+                        style={{ width: `${(userStat.reviewTasks / userStat.totalTasks) * 100}%` }}
+                        title={`En revisión: ${userStat.reviewTasks}`}
                       />
                     )}
                     {userStat.completedTasks > 0 && (
                       <div
-                        className="bg-yellow-500 transition-all duration-500"
+                        className="bg-green-500 transition-all duration-500"
                         style={{ width: `${(userStat.completedTasks / userStat.totalTasks) * 100}%` }}
-                        title={`REVIEW: ${userStat.completedTasks}`}
+                        title={`Completadas: ${userStat.completedTasks}`}
                       />
                     )}
                   </div>
@@ -609,7 +622,7 @@ export default function PerformanceDashboard({ params }: { params: { id: string 
                       ) : (
                         <span className="text-purple-600">✓</span>
                       )}
-                      <span className="text-gray-900">READY ({userStat.todoTasks})</span>
+                      <span className="text-gray-900">POR HACER ({userStat.todoTasks})</span>
                     </div>
                   </div>
                   {isSectionExpanded(userStat.id, 'ready') && (
@@ -633,7 +646,7 @@ export default function PerformanceDashboard({ params }: { params: { id: string 
                       ) : (
                         <span className="text-blue-600">✓</span>
                       )}
-                      <span className="text-gray-900">IN PROGRESS ({userStat.inProgressTasks})</span>
+                      <span className="text-gray-900">EN PROGRESO ({userStat.inProgressTasks})</span>
                     </div>
                   </div>
                   {isSectionExpanded(userStat.id, 'inprogress') && (
@@ -657,12 +670,36 @@ export default function PerformanceDashboard({ params }: { params: { id: string 
                       ) : (
                         <span className="text-yellow-600">✓</span>
                       )}
-                      <span className="text-gray-900">REVIEW ({userStat.completedTasks})</span>
+                      <span className="text-gray-900">EN REVISIÓN ({userStat.reviewTasks})</span>
                     </div>
                   </div>
                   {isSectionExpanded(userStat.id, 'review') && (
                     <div className="ml-6 space-y-1">
                       {getMockTasks(userStat.id, 'review').map((task, index) => (
+                        <div key={index} className="flex items-center justify-between text-xs text-gray-600">
+                          <span>{task.name}</span>
+                          <span className="text-gray-500">{task.hours}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  <div 
+                    className="flex items-center justify-between text-sm cursor-pointer hover:bg-gray-50 p-1 rounded"
+                    onClick={() => toggleSection(userStat.id, 'done')}
+                  >
+                    <div className="flex items-center space-x-2">
+                      {isSectionExpanded(userStat.id, 'done') ? (
+                        <span className="text-green-600">▲</span>
+                      ) : (
+                        <span className="text-green-600">✓</span>
+                      )}
+                      <span className="text-gray-900">COMPLETADAS ({userStat.completedTasks})</span>
+                    </div>
+                  </div>
+                  {isSectionExpanded(userStat.id, 'done') && (
+                    <div className="ml-6 space-y-1">
+                      {getMockTasks(userStat.id, 'done').map((task, index) => (
                         <div key={index} className="flex items-center justify-between text-xs text-gray-600">
                           <span>{task.name}</span>
                           <span className="text-gray-500">{task.hours}</span>
